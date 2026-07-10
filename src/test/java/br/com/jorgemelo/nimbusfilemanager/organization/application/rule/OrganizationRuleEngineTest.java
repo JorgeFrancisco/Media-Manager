@@ -1,0 +1,82 @@
+package br.com.jorgemelo.nimbusfilemanager.organization.application.rule;
+
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.util.List;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import br.com.jorgemelo.nimbusfilemanager.organization.application.dto.OrganizationRuleResult;
+import br.com.jorgemelo.nimbusfilemanager.organization.application.rule.impl.CameraOrganizationRule;
+import br.com.jorgemelo.nimbusfilemanager.organization.application.rule.impl.DefaultOrganizationRule;
+import br.com.jorgemelo.nimbusfilemanager.organization.application.rule.impl.DroneOrganizationRule;
+import br.com.jorgemelo.nimbusfilemanager.organization.application.rule.impl.GoProOrganizationRule;
+import br.com.jorgemelo.nimbusfilemanager.organization.application.rule.impl.ScreenshotOrganizationRule;
+import br.com.jorgemelo.nimbusfilemanager.organization.application.rule.impl.WhatsAppOrganizationRule;
+import br.com.jorgemelo.nimbusfilemanager.organization.domain.enums.FileCategory;
+import br.com.jorgemelo.nimbusfilemanager.organization.domain.enums.OrganizationRuleReason;
+import br.com.jorgemelo.nimbusfilemanager.organization.domain.enums.OrganizationRuleType;
+import br.com.jorgemelo.nimbusfilemanager.organization.domain.repository.projection.OrganizationCandidate;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.FileType;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.MediaSubcategory;
+
+class OrganizationRuleEngineTest {
+
+	private final OrganizationRuleEngine engine = new OrganizationRuleEngine(
+			List.of(new DefaultOrganizationRule(), new CameraOrganizationRule(), new ScreenshotOrganizationRule(),
+					new GoProOrganizationRule(), new DroneOrganizationRule(), new WhatsAppOrganizationRule()));
+
+	@Test
+	void shouldClassifySpecificRulesBeforeDefaultRule() {
+		assertClassification(candidate("IMG-20240102-WA0001.jpg", "C:/media/input", MediaSubcategory.OTHER),
+				OrganizationRuleType.WHATSAPP, OrganizationRuleReason.FILE_NAME, MediaSubcategory.WHATSAPP);
+
+		assertClassification(candidate("DJI_20240102103000_0001.JPG", "C:/media/input", MediaSubcategory.OTHER),
+				OrganizationRuleType.DRONE, OrganizationRuleReason.FILE_NAME, MediaSubcategory.DRONE);
+
+		assertClassification(candidate("GH010123.MP4", "C:/media/input", MediaSubcategory.OTHER),
+				OrganizationRuleType.GOPRO, OrganizationRuleReason.FILE_NAME, MediaSubcategory.GOPRO);
+
+		assertClassification(candidate("Screenshot_20240102_103000.png", "C:/media/input", MediaSubcategory.OTHER),
+				OrganizationRuleType.SCREENSHOT, OrganizationRuleReason.FILE_NAME, MediaSubcategory.SCREENSHOT);
+
+		assertClassification(candidate("20240102_103000.jpg", "C:/media/input", MediaSubcategory.OTHER),
+				OrganizationRuleType.CAMERA, OrganizationRuleReason.FILE_NAME, MediaSubcategory.CAMERA);
+	}
+
+	@Test
+	void shouldPreferDatabaseReasonWhenSubcategoryIsAlreadyKnown() {
+		OrganizationRuleResult result = engine
+				.classify(candidate("random.jpg", "C:/media/input", MediaSubcategory.WHATSAPP));
+
+		Assertions.assertThat(result.rule()).isEqualTo(OrganizationRuleType.WHATSAPP);
+		Assertions.assertThat(result.reason()).isEqualTo(OrganizationRuleReason.DATABASE);
+		Assertions.assertThat(result.subcategory()).isEqualTo(MediaSubcategory.WHATSAPP);
+	}
+
+	@Test
+	void shouldFallbackToDefaultRule() {
+		OrganizationRuleResult result = engine
+				.classify(candidate("unknown.bin", "C:/media/input", MediaSubcategory.OTHER));
+
+		Assertions.assertThat(result.rule()).isEqualTo(OrganizationRuleType.DEFAULT);
+		Assertions.assertThat(result.reason()).isEqualTo(OrganizationRuleReason.UNKNOWN);
+		Assertions.assertThat(result.category()).isEqualTo(FileCategory.MEDIA);
+		Assertions.assertThat(result.fileType()).isEqualTo(FileType.PHOTO);
+	}
+
+	private void assertClassification(OrganizationCandidate candidate, OrganizationRuleType rule,
+			OrganizationRuleReason reason, MediaSubcategory subcategory) {
+		OrganizationRuleResult result = engine.classify(candidate);
+
+		Assertions.assertThat(result.rule()).isEqualTo(rule);
+		Assertions.assertThat(result.reason()).isEqualTo(reason);
+		Assertions.assertThat(result.subcategory()).isEqualTo(subcategory);
+	}
+
+	private OrganizationCandidate candidate(String fileName, String currentPath, MediaSubcategory subcategory) {
+		return new OrganizationCandidate(1L, fileName, "jpg", FileType.PHOTO, 100L, currentPath, "C:/media", 2024, 1, 2,
+				"202401", LocalDateTime.of(2024, Month.JANUARY, 2, 10, 30), FileCategory.MEDIA, subcategory);
+	}
+}

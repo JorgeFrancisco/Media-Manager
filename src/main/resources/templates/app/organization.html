@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.organization}, null)}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.organization})}">
+<section>
+	<form class="panel" method="post">
+		<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+		<div class="alert error" th:if="${error}">
+			<span th:text="${error}">Erro.</span>
+			<a th:if="${errorProgressId}" th:href="@{/app/progress/{id}(id=${errorProgressId})}" th:text="#{org.detailsLink}">Ver detalhes da execução</a>
+		</div>
+		<div class="form-grid">
+			<label><span th:text="#{common.origin}">Origem</span>
+				<span class="folder-field">
+					<input name="sourcePath" id="organizationSourcePath" th:value="${sourcePath}" placeholder="C:/nimbus-file-manager/workspace/temp" required
+							data-recent-values="organization-source">
+					<button type="button" class="secondary folder-picker-open" data-target="#organizationSourcePath"><i class="bi bi-folder2" aria-hidden="true"></i> <span th:text="#{quarantine.origin.chooseFolder}">Escolher pasta</span></button>
+				</span>
+			</label>
+			<label><span th:text="#{common.destination}">Destino</span>
+				<span class="folder-field">
+					<input name="targetPath" id="organizationTargetPath" th:value="${targetPath}" placeholder="C:/nimbus-file-manager/workspace/organized" required
+							data-recent-values="organization-target">
+					<button type="button" class="secondary folder-picker-open" data-target="#organizationTargetPath"><i class="bi bi-folder2" aria-hidden="true"></i> <span th:text="#{quarantine.origin.chooseFolder}">Escolher pasta</span></button>
+				</span>
+			</label>
+			<label><span th:text="#{org.layout}">Layout</span>
+				<select name="layout" data-option-hint="organizationLayoutHint">
+					<option th:each="layout : ${layouts}" th:value="${layout}" th:selected="${layout == layoutValue}"
+							th:text="#{org.layoutOption(${#messages.msg('enum.organizationLayout.' + layout.name() + '.label')}, ${layout.example()})}"
+							th:data-description="${#messages.msg('enum.organizationLayout.' + layout.name() + '.description')}"></option>
+				</select>
+				<small class="muted" id="organizationLayoutHint" th:text="${#messages.msg('enum.organizationLayout.' + layoutValue.name() + '.description')}">Estrutura de pastas criada dentro da pasta de destino.</small>
+			</label>
+			<label><span th:text="#{org.geoSubdivision}">Subdivisão geográfica</span>
+				<select name="locationSubdivision">
+					<option th:each="option : ${locationSubdivisions}" th:value="${option}"
+							th:selected="${option == locationSubdivisionValue}" th:text="${#messages.msg('enum.locationSubdivision.' + option.name())}"></option>
+				</select>
+				<small class="muted" th:text="#{org.geoSubdivisionHint}">Insere País/Estado/Cidade na estrutura escolhida (requer localização offline habilitada).</small>
+			</label>
+			<label><span th:text="#{org.minConfidence}">Confiança mínima da localização</span>
+				<select name="locationMinConfidence">
+					<option value="" th:selected="${locationMinConfidenceValue == null}" th:text="#{org.anyConfidence}">Qualquer</option>
+					<option th:each="option : ${locationConfidences}" th:value="${option}"
+							th:selected="${option == locationMinConfidenceValue}"
+							th:text="${#messages.msg('enum.locationConfidence.' + option.name())} + (${option.name() != 'VERY_HIGH'} ? #{org.orHigher} : '')"></option>
+				</select>
+			</label>
+			<label><span th:text="#{org.noReliableLocation}">Sem localização confiável</span>
+				<select name="locationFallback">
+					<option th:each="option : ${locationFallbacks}" th:value="${option}"
+							th:selected="${option == locationFallbackValue}" th:text="${#messages.msg('enum.locationFallback.' + option.name())}"></option>
+				</select>
+			</label>
+			<label><span th:text="#{org.limit}">Limite</span>
+				<input name="limit" type="number" th:value="${limit}" min="1">
+			</label>
+			<label><span th:text="#{files.itemsPerPage}">Itens por pagina</span>
+				<select name="size">
+					<option th:each="option : ${sizes}" th:value="${option}" th:text="${option}"
+							th:selected="${option == size}"></option>
+				</select>
+			</label>
+		</div>
+		<input type="hidden" name="page" value="0">
+		<div class="checks">
+			<label th:title="#{org.recursiveTitle}" title="Inclui também as subpastas da origem."><input type="checkbox" name="recursive" th:checked="${recursive == null || recursive}"> <span th:text="#{organization.recursive}">Recursivo</span></label>
+			<label th:title="#{org.allowConflictsTitle}" title="Conflito = o arquivo já existe no destino, ou dois arquivos iriam para o mesmo lugar. Desmarcado, a organização é cancelada se houver qualquer conflito. Marcado, ela continua e trata cada conflito (pula, ou sobrescreve se 'Sobrescrever existentes' estiver marcado)."><input type="checkbox" name="allowConflicts" th:checked="${allowConflicts}"> <span th:text="#{organization.allowConflicts}">Continuar mesmo com conflitos</span></label>
+			<label th:title="#{org.overwriteTitle}" title="Ao encontrar um arquivo já existente no destino, substitui pelo novo. Desmarcado, o arquivo em conflito é apenas pulado (fica onde está). Só tem efeito junto com 'Continuar mesmo com conflitos'."><input type="checkbox" name="overwriteExisting" th:checked="${overwriteExisting}"> <span th:text="#{organization.overwrite}">Sobrescrever existentes</span></label>
+		</div>
+		<p class="muted" th:text="#{org.conflictNote}">Conflitoé quando o arquivo já existe no destino ou dois iriam para o mesmo lugar. Sem "Continuar mesmo com conflitos", a organização é cancelada se houver algum. Com ele, ela segue: pula os conflitos — ou os substitui, se "Sobrescrever existentes" estiver marcado.</p>
+		<div class="actions">
+			<button type="submit" th:formaction="@{/app/organization/preview}" th:text="#{org.preview}">Preview</button>
+			<button class="secondary" type="submit" th:formaction="@{/app/organization/execute}"
+					th:attr="data-confirm=#{org.executeConfirm}" th:text="#{org.execute}">Executar</button>
+		</div>
+	</form>
+	<div th:replace="~{fragments/folder-picker :: folderPicker}"></div>
+	<div class="panel section" th:if="${plan != null}">
+		<h2 th:text="#{org.preview}">Preview</h2>
+		<div class="grid">
+			<div><div class="metric" th:text="#{category.files}">Arquivos</div><div class="value" th:text="${plan.summary().totalFiles()}">0</div></div>
+			<div><div class="metric" th:text="#{execution.movements}">Movimentos</div><div class="value" th:text="${plan.summary().plannedMoves()}">0</div></div>
+			<div><div class="metric" th:text="#{org.conflicts}">Conflitos</div><div class="value" th:text="${plan.summary().conflicts()}">0</div></div>
+			<div><div class="metric" th:text="#{org.alreadyOrganized}">Já organizados</div><div class="value" th:text="${plan.summary().alreadyOrganized()}">0</div></div>
+		</div>
+		<div class="table-toolbar section pagination-toolbar">
+			<span th:text="#{org.pageInfo(${page + 1}, ${totalPages}, ${totalItems})}">Página 1</span>
+			<a class="button secondary" th:if="${plan.summary().conflicts() > 0}"
+					th:href="@{/app/organization/preview/{id}(id=${executionId},page=0,size=${size},onlyConflicts=${!onlyConflicts})}"
+					th:text="${onlyConflicts} ? #{org.viewAll} : #{org.viewConflictsOnly}">Ver só conflitos</a>
+			<a class="button secondary"
+					th:classappend="${!hasPrevious} ? ' disabled'"
+					th:href="@{/app/organization/preview/{id}(id=${executionId},page=0,size=${size},onlyConflicts=${onlyConflicts})}" th:text="#{pagination.first}">Primeira</a>
+			<a class="button secondary"
+					th:classappend="${!hasPrevious} ? ' disabled'"
+					th:href="@{/app/organization/preview/{id}(id=${executionId},page=${page - 1},size=${size},onlyConflicts=${onlyConflicts})}" th:text="#{pagination.previous}">Anterior</a>
+			<a class="button secondary"
+					th:classappend="${!hasNext} ? ' disabled'"
+					th:href="@{/app/organization/preview/{id}(id=${executionId},page=${page + 1},size=${size},onlyConflicts=${onlyConflicts})}" th:text="#{pagination.next}">Próxima</a>
+			<a class="button secondary"
+					th:classappend="${!hasNext} ? ' disabled'"
+					th:href="@{/app/organization/preview/{id}(id=${executionId},page=${totalPages - 1},size=${size},onlyConflicts=${onlyConflicts})}" th:text="#{pagination.last}">Última</a>
+		</div>
+		<div class="table-wrap section">
+			<table class="table">
+				<thead><tr><th th:text="#{quarantine.col.file}">Arquivo</th><th th:text="#{common.origin}">Origem</th><th th:text="#{common.destination}">Destino</th><th th:text="#{org.location}">Localidade</th><th th:text="#{org.confidence}">Confiabilidade</th><th th:text="#{org.conflict}">Conflito</th></tr></thead>
+				<tbody>
+				<tr th:each="item : ${previewItems}">
+					<td th:text="${item.fileName()}">file.jpg</td>
+					<td class="path" th:text="${item.sourcePath()}">source</td>
+					<td class="path" th:text="${item.targetPath()}">target</td>
+					<td th:text="${item.location()} ?: '—'">-</td>
+					<td th:text="${item.locationConfidence()} ?: '—'">-</td>
+					<td th:text="${item.conflictType()}">-</td>
+				</tr>
+				<tr th:if="${#lists.isEmpty(previewItems)}">
+					<td colspan="6" th:text="${onlyConflicts} ? #{org.noConflicts} : #{org.noItems}">Nenhum item.</td>
+				</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</section>
+</div>
+</body>
+</html>

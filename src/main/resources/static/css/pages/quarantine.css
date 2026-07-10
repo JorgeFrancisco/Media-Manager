@@ -1,0 +1,106 @@
+/* Quarentena screen. The file listing itself reuses the shared media-card component
+   (components.css); this file only styles the toolbar, the table cells and the two restore
+   dialogs. All colors come from the theme variables so light/dark contrast stays correct. */
+
+.quarantine-toolbar {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	justify-content: space-between;
+}
+
+.quarantine-select {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.quarantine-select-all {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
+}
+
+.quarantine-controls {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: flex-end;
+	margin-left: auto;
+}
+
+.quarantine-view-switch {
+	display: inline-flex;
+	gap: 4px;
+}
+
+.quarantine-view-switch a {
+	align-items: center;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	color: var(--muted);
+	display: inline-flex;
+	height: 34px;
+	justify-content: center;
+	text-decoration: none;
+	width: 36px;
+}
+
+.quarantine-view-switch a:hover {
+	background: var(--accent-soft);
+	color: var(--text);
+}
+
+.quarantine-view-switch a.active {
+	background: var(--accent-soft);
+	border-color: var(--accent-soft-line);
+	color: var(--accent);
+}
+
+.quarantine-table td {
+	vertical-align: middle;
+}
+
+.quarantine-table .badge {
+	white-space: nowrap;
+}
+
+.media-tile-status {
+	margin-bottom: 8px;
+}
+
+.quarantine-dialog {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	color: var(--text);
+	max-width: 520px;
+	padding: 20px;
+	width: calc(100% - 32px);
+}
+
+.quarantine-dialog::backdrop {
+	background: rgba(0, 0, 0, .58);
+}
+
+.quarantine-dialog-header h2 {
+	font-size: 18px;
+	margin: 0 0 10px;
+}
+
+.quarantine-dialog .actions {
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	margin-top: 18px;
+}
+
+.quarantine-origin-chosen {
+	background: var(--bg);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	overflow-wrap: anywhere;
+	padding: 8px 12px;
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{page.progress}, 'execution-progress')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{page.progress})}">
+<section>
+	<!-- Voltar returns to the actual previous page (history.back); the th:href is only a fallback for
+	     when there is no history (opened directly). This page is reached both from the Organização form
+	     and from the executions list ("Abrir"), so a hardcoded target would be wrong for one of them. -->
+	<a class="button secondary back-link" data-history-back
+			th:href="${kind != null and #strings.startsWith(kind, 'organization')} ? @{/app/organization} : @{/app}">
+		<i class="bi bi-arrow-left"></i><span th:text="#{action.back}">Voltar</span></a>
+	<div id="progressRoot" class="panel section" th:data-execution-id="${executionId}" th:data-kind="${kind}">
+		<h2 id="progressTitle" th:text="#{execution.processing}">Processando...</h2>
+		<p class="progress-text" id="progressText" th:text="#{execution.starting}">Iniciando...</p>
+		<div class="progress-bar">
+			<div class="progress-bar-fill" id="progressFill"></div>
+		</div>
+		<div class="grid">
+			<div><div class="metric" th:text="#{common.status}">Status</div><div class="value" id="statusValue">-</div></div>
+			<div><div class="metric" th:text="#{execution.processed}">Processados</div><div class="value" id="foundValue">0</div></div>
+			<div id="movedCard" style="display:none;"><div class="metric" id="movedLabel" th:text="#{execution.moved}">Movidos</div><div class="value" id="movedValue">0</div></div>
+			<div id="skippedCard" style="display:none;"><div class="metric" id="skippedLabel" th:text="#{execution.skipped}">Ignorados</div><div class="value" id="skippedValue">0</div></div>
+			<div><div class="metric" th:text="#{execution.totalEstimated}">Total estimado</div><div class="value" id="totalValue">-</div></div>
+			<div><div class="metric" th:text="#{common.errors}">Erros</div><div class="value" id="errorsValue">0</div></div>
+		</div>
+		<div class="progress-actions" id="progressActions" style="display:none;">
+			<a id="viewResultLink" class="button" href="#" th:text="#{execution.viewResult}">Ver resultado</a>
+		</div>
+		<div class="progress-actions" id="cancelActions">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" id="progressCsrfToken">
+			<button type="button" class="button secondary" id="cancelButton" th:text="#{action.cancel}">Cancelar</button>
+			<span class="muted" id="cancelStatus"></span>
+		</div>
+	</div>
+</section>
+</div>
+<script th:src="@{/js/execution-status.js}"></script>
+<script th:src="@{/js/pages/execution-progress.js}"></script>
+</body>
+</html>

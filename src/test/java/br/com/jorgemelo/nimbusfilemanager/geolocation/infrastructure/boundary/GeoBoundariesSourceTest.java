@@ -1,0 +1,203 @@
+package br.com.jorgemelo.nimbusfilemanager.geolocation.infrastructure.boundary;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpServer;
+
+import br.com.jorgemelo.nimbusfilemanager.geolocation.application.GeoDatasetProgress;
+import br.com.jorgemelo.nimbusfilemanager.geolocation.application.dto.LeveledBoundaryFile;
+import br.com.jorgemelo.nimbusfilemanager.geolocation.domain.enums.AdminBoundaryKind;
+import br.com.jorgemelo.nimbusfilemanager.settings.application.AppSettingService;
+import br.com.jorgemelo.nimbusfilemanager.settings.application.constants.SettingsConstants;
+import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.BoundaryDatasetProperties;
+
+/**
+ * Acquisition behaviour of the boundary source: conditional downloads (an
+ * update only re-transfers a file whose ETag changed on the server) and the
+ * territory gap-filling (missing ISO countries fetched individually through the
+ * boundary API, tolerant to territories the source has no data for). URLs come
+ * from app_setting, mocked here.
+ */
+class GeoBoundariesSourceTest {
+
+	private static final byte[] BODY = "{\"type\":\"FeatureCollection\",\"features\":[]}"
+			.getBytes(StandardCharsets.UTF_8);
+
+	private HttpServer server;
+	private final AtomicInteger requests = new AtomicInteger();
+	private final AtomicInteger fullDownloads = new AtomicInteger();
+	private volatile String currentEtag = "\"v1\"";
+
+	private final AppSettingService appSettingService = mock(AppSettingService.class);
+
+	@TempDir
+	Path workspace;
+
+	@BeforeEach
+	void startServer() throws IOException {
+		server = HttpServer.create(new InetSocketAddress(0), 0);
+		server.createContext("/adm0", exchange -> {
+			requests.incrementAndGet();
+
+			String ifNoneMatch = exchange.getRequestHeaders().getFirst("If-None-Match");
+
+			if (currentEtag.equals(ifNoneMatch)) {
+				exchange.sendResponseHeaders(304, -1);
+				exchange.close();
+
+				return;
+			}
+
+			fullDownloads.incrementAndGet();
+
+			exchange.getResponseHeaders().add("ETag", currentEtag);
+			exchange.sendResponseHeaders(200, BODY.length);
+
+			try (OutputStream out = exchange.getResponseBody()) {
+				out.write(BODY);
+			}
+		});
+		server.start();
+	}
+
+	@AfterEach
+	void stopServer() {
+		server.stop(0);
+	}
+
+	private String baseUrl() {
+		return "http://localhost:" + server.getAddress().getPort();
+	}
+
+	private GeoBoundariesSource source() {
+		when(appSettingService.stringValue(eq(SettingsConstants.BOUNDARY_ADM0_URL), anyString()))
+				.thenReturn(baseUrl() + "/adm0");
+		when(appSettingService.stringValue(eq(SettingsConstants.BOUNDARY_ADM1_URL), anyString())).thenReturn("");
+		when(appSettingService.stringValue(eq(SettingsConstants.BOUNDARY_ADM2_URL), anyString())).thenReturn("");
+
+		return new GeoBoundariesSource(new BoundaryDatasetProperties(), appSettingService, new ObjectMapper(),
+				new GeoDatasetProgress(), Clock.systemDefaultZone());
+	}
+
+	@Test
+	void shouldReuseUnchangedFileAndRedownloadWhenEtagChanges() {
+		GeoBoundariesSource source = source();
+
+		// First update: nothing on disk yet -> full download.
+		List<LeveledBoundaryFile> first = source.fetch(workspace);
+
+		Assertions.assertThat(first).hasSize(1);
+		Assertions.assertThat(first.get(0).kind()).isEqualTo(AdminBoundaryKind.COUNTRY);
+		Assertions.assertThat(first.get(0).file()).exists().hasBinaryContent(BODY);
+		Assertions.assertThat(fullDownloads).hasValue(1);
+
+		// Second update, same ETag on the server -> 304, file reused from disk.
+		List<LeveledBoundaryFile> second = source.fetch(workspace);
+
+		Assertions.assertThat(second.get(0).file()).exists().hasBinaryContent(BODY);
+		Assertions.assertThat(requests).hasValue(2);
+		Assertions.assertThat(fullDownloads).hasValue(1);
+
+		// Dataset changed on the server -> full download again.
+		currentEtag = "\"v2\"";
+		source.fetch(workspace);
+
+		Assertions.assertThat(fullDownloads).hasValue(2);
+	}
+
+	@Test
+	void shouldFetchAllAvailableLevelsForMissingCountriesAndSkipUnknownTerritories() {
+		// API knows all three levels for ABW; AAA is unknown (404) and must be
+		// skipped without failing the whole update.
+		server.createContext("/api/ABW/ADM0/", exchange -> {
+			byte[] json = ("{\"gjDownloadURL\": \"" + baseUrl() + "/gbOpen/geoBoundaries-ABW-ADM0.geojson\"}")
+					.getBytes(StandardCharsets.UTF_8);
+
+			exchange.getResponseHeaders().add("Content-Type", "application/json");
+			exchange.sendResponseHeaders(200, json.length);
+
+			try (OutputStream out = exchange.getResponseBody()) {
+				out.write(json);
+			}
+		});
+
+		server.createContext("/gbOpen/geoBoundaries-ABW-ADM0.geojson", exchange -> {
+			exchange.sendResponseHeaders(200, BODY.length);
+
+			try (OutputStream out = exchange.getResponseBody()) {
+				out.write(BODY);
+			}
+		});
+
+		server.createContext("/api/AAA/ADM0/", exchange -> {
+			exchange.sendResponseHeaders(404, -1);
+			exchange.close();
+		});
+
+		for (String level : List.of("ADM1", "ADM2")) {
+			server.createContext("/api/ABW/" + level + "/", exchange -> {
+				byte[] json = ("{\"gjDownloadURL\": \"" + baseUrl() + "/gbOpen/geoBoundaries-ABW-" + level
+						+ ".geojson\"}").getBytes(StandardCharsets.UTF_8);
+
+				exchange.getResponseHeaders().add("Content-Type", "application/json");
+				exchange.sendResponseHeaders(200, json.length);
+
+				try (OutputStream out = exchange.getResponseBody()) {
+					out.write(json);
+				}
+			});
+
+			server.createContext("/gbOpen/geoBoundaries-ABW-" + level + ".geojson", exchange -> {
+				exchange.sendResponseHeaders(200, BODY.length);
+
+				try (OutputStream out = exchange.getResponseBody()) {
+					out.write(BODY);
+				}
+			});
+		}
+
+		when(appSettingService.stringValue(eq(SettingsConstants.BOUNDARY_GBOPEN_API_URL), anyString()))
+				.thenReturn(baseUrl() + "/api/");
+
+		GeoBoundariesSource source = new GeoBoundariesSource(new BoundaryDatasetProperties(), appSettingService,
+				new ObjectMapper(), new GeoDatasetProgress(), Clock.systemDefaultZone());
+
+		List<LeveledBoundaryFile> files = source.fetchMissingCountries(List.of("ABW", "AAA"), workspace);
+
+		Assertions.assertThat(files).extracting(LeveledBoundaryFile::kind).containsExactly(AdminBoundaryKind.COUNTRY,
+				AdminBoundaryKind.STATE, AdminBoundaryKind.MUNICIPALITY);
+		Assertions.assertThat(files)
+				.allSatisfy(file -> Assertions.assertThat(file.file()).exists().hasBinaryContent(BODY));
+		Assertions.assertThat(files).extracting(file -> file.file().getFileName().toString()).containsExactly(
+				"geoBoundaries-ABW-ADM0.geojson", "geoBoundaries-ABW-ADM1.geojson", "geoBoundaries-ABW-ADM2.geojson");
+	}
+
+	@Test
+	void shouldFetchNothingWhenApiUrlIsBlank() {
+		when(appSettingService.stringValue(eq(SettingsConstants.BOUNDARY_GBOPEN_API_URL), anyString())).thenReturn("");
+
+		GeoBoundariesSource source = new GeoBoundariesSource(new BoundaryDatasetProperties(), appSettingService,
+				new ObjectMapper(), new GeoDatasetProgress(), Clock.systemDefaultZone());
+
+		Assertions.assertThat(source.fetchMissingCountries(List.of("ABW"), workspace)).isEmpty();
+	}
+}

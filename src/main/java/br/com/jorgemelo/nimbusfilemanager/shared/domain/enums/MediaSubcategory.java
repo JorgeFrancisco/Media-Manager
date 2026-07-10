@@ -1,0 +1,25 @@
+package br.com.jorgemelo.nimbusfilemanager.shared.domain.enums;
+
+public enum MediaSubcategory {
+
+	CAMERA("CAMERA"), CELLPHONE("CAMERA"), WHATSAPP("WHATS"), AIRBRUSH("AIRBRUSH"), DRONE("DRONE"), GOPRO("GOPRO"),
+	SCREENSHOT("SCREENSHOT"), UNKNOWN("OUTROS"), OTHER("OUTROS");
+
+	private final String folderName;
+
+	MediaSubcategory(String folderName) {
+		this.folderName = folderName;
+	}
+
+	public String folderName() {
+		return folderName;
+	}
+
+	public static String folderNameOf(MediaSubcategory subcategory) {
+		return subcategory == null ? OTHER.folderName() : subcategory.folderName();
+	}
+
+	public static MediaSubcategory valueOfNullable(MediaSubcategory subcategory) {
+		return subcategory == null ? UNKNOWN : subcategory;
+	}
+}

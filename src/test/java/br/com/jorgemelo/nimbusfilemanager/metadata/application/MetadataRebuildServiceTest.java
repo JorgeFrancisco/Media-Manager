@@ -1,0 +1,310 @@
+package br.com.jorgemelo.nimbusfilemanager.metadata.application;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.util.List;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import br.com.jorgemelo.nimbusfilemanager.metadata.application.date.MediaDateResolver;
+import br.com.jorgemelo.nimbusfilemanager.metadata.application.dto.MetadataOptions;
+import br.com.jorgemelo.nimbusfilemanager.metadata.application.dto.MetadataRebuildRequest;
+import br.com.jorgemelo.nimbusfilemanager.metadata.application.dto.ResolvedMediaDate;
+import br.com.jorgemelo.nimbusfilemanager.metadata.application.extractor.MetadataExtractor;
+import br.com.jorgemelo.nimbusfilemanager.metadata.application.model.MetadataResult;
+import br.com.jorgemelo.nimbusfilemanager.metadata.domain.enums.MediaOrientation;
+import br.com.jorgemelo.nimbusfilemanager.metadata.domain.enums.MetadataRebuildField;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.DateSource;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.FileType;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.MediaSubcategory;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.model.CatalogFile;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.model.CatalogFileLocation;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.model.MediaMetadata;
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.repository.CatalogFileRepository;
+
+@ExtendWith(MockitoExtension.class)
+class MetadataRebuildServiceTest {
+
+	@TempDir
+	Path tempDir;
+
+	@Mock
+	private CatalogFileRepository catalogFileRepository;
+
+	@Mock
+	private MetadataExtractor metadataExtractor;
+
+	@Mock
+	private MediaDateResolver mediaDateResolver;
+
+	@Mock
+	private PlatformTransactionManager transactionManager;
+
+	@Test
+	void dryRunShouldOnlyCountCandidateIds() {
+		MetadataRebuildRequest request = request(true, List.of(MetadataRebuildField.ALL));
+
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(0L),
+				any(Pageable.class))).thenReturn(List.of(1L, 2L, 3L));
+
+		var response = service().rebuild(request);
+
+		Assertions.assertThat(response.dryRun()).isTrue();
+		Assertions.assertThat(response.candidates()).isEqualTo(3);
+		Assertions.assertThat(response.rebuilt()).isZero();
+	}
+
+	@Test
+	void rebuildShouldProcessSuccessMissingLocationMissingFileAndErrors() throws Exception {
+		Path existingFile = Files.writeString(tempDir.resolve("photo.jpg"), "content");
+		Path missingFile = tempDir.resolve("missing.jpg");
+
+		CatalogFile success = catalogFile(1L, existingFile);
+		CatalogFile withoutLocation = CatalogFile.builder().id(2L).build();
+		CatalogFile missing = catalogFile(3L, missingFile);
+		CatalogFile error = catalogFile(4L, existingFile);
+
+		MetadataResult metadata = metadata(existingFile);
+
+		MetadataRebuildRequest request = request(false, List.of(MetadataRebuildField.ALL));
+
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(0L),
+				any(Pageable.class))).thenReturn(List.of(1L, 2L, 3L, 4L));
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(4L),
+				any(Pageable.class))).thenReturn(List.of());
+		when(catalogFileRepository.findForMetadataRebuildByIds(List.of(1L, 2L, 3L, 4L)))
+				.thenReturn(List.of(success, withoutLocation, missing, error));
+		when(metadataExtractor.extract(existingFile.toAbsolutePath().normalize(), new MetadataOptions(false, true)))
+				.thenReturn(metadata).thenThrow(new IllegalStateException("bad metadata"));
+		when(mediaDateResolver.resolve(metadata))
+				.thenReturn(new ResolvedMediaDate(LocalDateTime.of(2024, Month.MAY, 9, 10, 30), DateSource.EXIF));
+
+		var response = service().rebuild(request);
+
+		Assertions.assertThat(response.dryRun()).isFalse();
+		Assertions.assertThat(response.candidates()).isEqualTo(4);
+		Assertions.assertThat(response.rebuilt()).isEqualTo(1);
+		Assertions.assertThat(response.skippedWithoutLocation()).isEqualTo(1);
+		Assertions.assertThat(response.skippedMissing()).isEqualTo(1);
+		Assertions.assertThat(response.errors()).isEqualTo(1);
+		Assertions.assertThat(success)
+				.extracting(CatalogFile::getFileName, CatalogFile::getExtension, CatalogFile::getSizeBytes,
+						CatalogFile::getMimeType, CatalogFile::getFileType, CatalogFile::getCreatedAt,
+						CatalogFile::getModifiedAt, CatalogFile::getLifecycleStatus, CatalogFile::getAnalysisVersion)
+				.containsExactly("photo.jpg", "jpg", 100L, "image/jpeg", FileType.PHOTO,
+						LocalDateTime.of(2024, Month.MAY, 9, 10, 30), LocalDateTime.of(2024, Month.MAY, 9, 10, 30),
+						LifecycleStatus.ACTIVE, "1");
+		Assertions.assertThat(success.getLastAnalysis()).isNotNull();
+		Assertions.assertThat(success.getMetadata())
+				.extracting(MediaMetadata::getYear, MediaMetadata::getMonth, MediaMetadata::getDay,
+						MediaMetadata::getYearMonth, MediaMetadata::getCaptureDate, MediaMetadata::getDateSource)
+				.containsExactly(2024, 5, 9, "2024-05", LocalDateTime.of(2024, Month.MAY, 9, 10, 30), DateSource.EXIF);
+		Assertions.assertThat(success.getMetadata().getSubcategory()).isEqualTo(MediaSubcategory.CAMERA);
+
+		// One physical transaction boundary was opened for the batch.
+		verify(transactionManager).getTransaction(any());
+	}
+
+	@Test
+	void shouldRefreshOnlyDateWhenRefreshListIsEmpty() throws Exception {
+		Path existingFile = Files.writeString(tempDir.resolve("photo.jpg"), "content");
+
+		CatalogFile catalogFile = catalogFile(1L, existingFile);
+
+		MetadataResult metadata = metadata(existingFile);
+
+		MetadataRebuildRequest request = request(false, List.of());
+
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(0L),
+				any(Pageable.class))).thenReturn(List.of(1L));
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(1L),
+				any(Pageable.class))).thenReturn(List.of());
+		when(catalogFileRepository.findForMetadataRebuildByIds(List.of(1L))).thenReturn(List.of(catalogFile));
+		when(metadataExtractor.extract(existingFile.toAbsolutePath().normalize(), new MetadataOptions(false, true)))
+				.thenReturn(metadata);
+		when(mediaDateResolver.resolve(metadata))
+				.thenReturn(new ResolvedMediaDate(LocalDateTime.of(2024, Month.MAY, 9, 10, 30), DateSource.EXIF));
+
+		service().rebuild(request);
+
+		Assertions.assertThat(catalogFile.getFileName()).isNull();
+		Assertions.assertThat(catalogFile.getMetadata().getYear()).isEqualTo(2024);
+	}
+
+	@Test
+	void rebuildShouldRefreshSelectedMediaFieldsWithoutChangingUnselectedDateOrFileFields() throws Exception {
+		Path existingFile = Files.writeString(tempDir.resolve("photo.jpg"), "content");
+
+		CatalogFile catalogFile = catalogFile(1L, existingFile);
+
+		MediaMetadata media = catalogFile.getMetadata();
+
+		MetadataResult metadata = metadata(existingFile);
+
+		MetadataRebuildRequest request = request(false,
+				List.of(MetadataRebuildField.GPS, MetadataRebuildField.DIMENSIONS, MetadataRebuildField.CAMERA));
+
+		media.setYear(2020);
+		media.setYearMonth("2020-01");
+		media.setLatitude(1.0);
+		media.setLongitude(2.0);
+		media.setStoredWidth(10);
+		media.setStoredHeight(20);
+		media.setDisplayWidth(10);
+		media.setDisplayHeight(20);
+		media.setManufacturer("Old");
+		media.setModel("Old Model");
+
+		prepareSingleRebuild(catalogFile, existingFile, metadata);
+
+		service().rebuild(request);
+
+		Assertions.assertThat(catalogFile.getFileName()).isNull();
+		Assertions.assertThat(media.getYear()).isEqualTo(2020);
+		Assertions.assertThat(media.getYearMonth()).isEqualTo("2020-01");
+		Assertions.assertThat(media.getLatitude()).isEqualTo(-23.5);
+		Assertions.assertThat(media.getLongitude()).isEqualTo(-46.6);
+		Assertions.assertThat(media.getStoredWidth()).isEqualTo(4000);
+		Assertions.assertThat(media.getStoredHeight()).isEqualTo(3000);
+		Assertions.assertThat(media.getDisplayWidth()).isEqualTo(4000);
+		Assertions.assertThat(media.getDisplayHeight()).isEqualTo(3000);
+		Assertions.assertThat(media.getOrientationCode()).isEqualTo(1);
+		Assertions.assertThat(media.getRotation()).isZero();
+		Assertions.assertThat(media.getOrientationType()).isEqualTo(MediaOrientation.LANDSCAPE);
+		Assertions.assertThat(media.getManufacturer()).isEqualTo("Canon");
+		Assertions.assertThat(media.getModel()).isEqualTo("R6");
+		Assertions.assertThat(media.getMetadataJson()).isEqualTo("{}");
+	}
+
+	@Test
+	void rebuildShouldNotApplyMediaOnlyFieldsToDocuments() throws Exception {
+		Path existingFile = Files.writeString(tempDir.resolve("document.pdf"), "content");
+
+		CatalogFile catalogFile = catalogFile(1L, existingFile);
+
+		MetadataResult metadata = MetadataResult.builder().fileName("document.pdf").extension("pdf").sizeBytes(100L)
+				.mimeType("application/pdf").fileType(FileType.PDF).subcategory(MediaSubcategory.UNKNOWN)
+				.latitude(-23.5).longitude(-46.6).storedWidth(4000).storedHeight(3000).displayWidth(4000)
+				.displayHeight(3000).orientationCode(1).rotation(0).orientationType(MediaOrientation.LANDSCAPE)
+				.manufacturer("Canon").model("R6").metadataJson("{}").build();
+
+		MetadataRebuildRequest request = request(false,
+				List.of(MetadataRebuildField.GPS, MetadataRebuildField.DIMENSIONS, MetadataRebuildField.CAMERA));
+
+		MediaMetadata media = catalogFile.getMetadata();
+
+		prepareSingleRebuild(catalogFile, existingFile, metadata);
+
+		service().rebuild(request);
+
+		Assertions.assertThat(media.getLatitude()).isNull();
+		Assertions.assertThat(media.getLongitude()).isNull();
+		Assertions.assertThat(media.getStoredWidth()).isNull();
+		Assertions.assertThat(media.getStoredHeight()).isNull();
+		Assertions.assertThat(media.getDisplayWidth()).isNull();
+		Assertions.assertThat(media.getDisplayHeight()).isNull();
+		Assertions.assertThat(media.getManufacturer()).isNull();
+		Assertions.assertThat(media.getModel()).isNull();
+		Assertions.assertThat(media.getCategory()).isEqualTo(FileType.categoryOf(FileType.PDF));
+		Assertions.assertThat(media.getMetadataJson()).isEqualTo("{}");
+	}
+
+	@Test
+	void rebuildGpsShouldClearExactZeroPairFromExtractedMetadata() throws Exception {
+		Path existingFile = Files.writeString(tempDir.resolve("zero.mp4"), "content");
+
+		CatalogFile catalogFile = catalogFile(1L, existingFile);
+
+		catalogFile.getMetadata().setLatitude(-23.0);
+		catalogFile.getMetadata().setLongitude(-46.0);
+
+		MetadataResult metadata = MetadataResult.builder().fileName("zero.mp4").extension("mp4").mimeType("video/mp4")
+				.fileType(FileType.VIDEO).subcategory(MediaSubcategory.CAMERA).latitude(0.0).longitude(0.0).build();
+
+		prepareSingleRebuild(catalogFile, existingFile, metadata);
+
+		service().rebuild(request(false, List.of(MetadataRebuildField.GPS)));
+
+		Assertions.assertThat(catalogFile.getMetadata().getLatitude()).isNull();
+		Assertions.assertThat(catalogFile.getMetadata().getLongitude()).isNull();
+	}
+
+	@Test
+	void batchRetriesInAFreshTransactionOnOptimisticConflictThenSucceeds() {
+		MetadataRebuildRequest request = request(false, List.of(MetadataRebuildField.DATE));
+
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(0L),
+				any(Pageable.class))).thenReturn(List.of(1L));
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(1L),
+				any(Pageable.class))).thenReturn(List.of());
+		when(catalogFileRepository.findForMetadataRebuildByIds(List.of(1L)))
+				.thenThrow(new ObjectOptimisticLockingFailureException(CatalogFile.class, 1L)).thenReturn(List.of());
+
+		service().rebuild(request);
+
+		// Each attempt is its own physical transaction boundary (REQUIRES_NEW): the
+		// conflicting attempt rolls back and the retry opens a fresh one, re-reading
+		// the candidates. Two boundaries + two reads prove it is not the same tx.
+		verify(transactionManager, times(2)).getTransaction(any());
+		verify(catalogFileRepository, times(2)).findForMetadataRebuildByIds(List.of(1L));
+	}
+
+	private MetadataRebuildService service() {
+		return new MetadataRebuildService(catalogFileRepository, metadataExtractor, mediaDateResolver,
+				transactionManager, Clock.systemDefaultZone());
+	}
+
+	private void prepareSingleRebuild(CatalogFile catalogFile, Path existingFile, MetadataResult metadata) {
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(0L),
+				any(Pageable.class))).thenReturn(List.of(1L));
+		when(catalogFileRepository.findIdsForMetadataRebuild(any(), any(), eq(null), eq(null), eq(1L),
+				any(Pageable.class))).thenReturn(List.of());
+		when(catalogFileRepository.findForMetadataRebuildByIds(List.of(1L))).thenReturn(List.of(catalogFile));
+		when(metadataExtractor.extract(existingFile.toAbsolutePath().normalize(), new MetadataOptions(false, true)))
+				.thenReturn(metadata);
+	}
+
+	private MetadataRebuildRequest request(boolean dryRun, List<MetadataRebuildField> refresh) {
+		return new MetadataRebuildRequest(tempDir.toString(), refresh, null, null, 10, dryRun);
+	}
+
+	private CatalogFile catalogFile(Long id, Path currentPath) {
+		CatalogFile catalogFile = CatalogFile.builder().id(id).metadata(MediaMetadata.builder().build()).build();
+
+		CatalogFileLocation location = CatalogFileLocation.builder().catalogFile(catalogFile)
+				.currentPath(currentPath.toString()).build();
+
+		catalogFile.setLocation(location);
+
+		return catalogFile;
+	}
+
+	private MetadataResult metadata(Path file) {
+		LocalDateTime captureDate = LocalDateTime.of(2024, Month.MAY, 9, 10, 30);
+
+		return MetadataResult.builder().fileName(file.getFileName().toString()).extension("jpg").sizeBytes(100L)
+				.mimeType("image/jpeg").fileType(FileType.PHOTO).createdAt(captureDate).modifiedAt(captureDate)
+				.subcategory(MediaSubcategory.CAMERA).latitude(-23.5).longitude(-46.6).storedWidth(4000)
+				.storedHeight(3000).displayWidth(4000).displayHeight(3000).orientationCode(1).rotation(0)
+				.orientationType(MediaOrientation.LANDSCAPE).manufacturer("Canon").model("R6").metadataJson("{}")
+				.build();
+	}
+}

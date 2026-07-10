@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"shapeName":"Curitiba","shapeGroup":"BRA","shapeType":"ADM2"},"geometry":{"type":"Polygon","coordinates":[[[-49.55,-25.60],[-49.18,-25.60],[-49.18,-25.35],[-49.55,-25.35],[-49.55,-25.60]]]}},
+{"type":"Feature","properties":{"shapeName":"Pinhais","shapeGroup":"BRA","shapeType":"ADM2"},"geometry":{"type":"Polygon","coordinates":[[[-49.18,-25.60],[-49.10,-25.60],[-49.10,-25.35],[-49.18,-25.35],[-49.18,-25.60]]]}}
+]}

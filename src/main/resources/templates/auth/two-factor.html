@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Nimbus File Manager</title>
+	<link rel="icon" th:href="@{/favicon.ico}">
+	<link rel="stylesheet" th:href="@{/css/base.css}">
+	<link rel="stylesheet" th:href="@{/css/components.css}">
+	<link rel="stylesheet" th:href="@{/css/pages/login.css}">
+</head>
+<body class="login-page">
+	<div class="login-shell">
+		<form class="login-panel" th:action="@{/login/2fa}" method="post">
+			<h1 class="title" th:text="#{twoFactor.title}">Verificação</h1>
+			<p class="muted" th:text="${username}">admin@nimbus-file-manager.local</p>
+			<span class="version-pill">v<span th:text="${appVersion}">0.0.0</span></span>
+			<div class="alert error" th:if="${error}" th:text="#{twoFactor.error}">Código inválido.</div>
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+			<label><span th:text="#{twoFactor.code}">Código</span>
+				<input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" autofocus>
+			</label>
+			<div class="actions">
+				<button type="submit" th:text="#{twoFactor.submit}">Verificar</button>
+			</div>
+		</form>
+		<div class="login-art" aria-hidden="true"></div>
+	</div>
+</body>
+</html>

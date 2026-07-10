@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<!--
+	Shared "Biblioteca" summary block: the standardized metric cards (Arquivos, Fotos,
+	Vídeos, Áudios, Documentos, Outros, Tamanho total) plus the "Proporção por categoria"
+	bar chart. Reused by the Dashboard and the Statistics screen so both stay in sync.
+	The chart styling lives in css/components.css (global) so it renders on every page that
+	includes this fragment, not only the ones that load css/pages/statistics.css.
+-->
+<body>
+<div th:fragment="summary(summary)">
+	<div class="grid">
+		<div class="panel"><div class="metric" th:text="#{category.files}">Arquivos</div><div class="value" th:text="${summary.totalFiles()}">0</div></div>
+		<div class="panel"><div class="metric" th:text="#{category.photos}">Fotos</div><div class="value" th:text="${summary.photos()}">0</div></div>
+		<div class="panel"><div class="metric" th:text="#{category.videos}">Vídeos</div><div class="value" th:text="${summary.videos()}">0</div></div>
+		<div class="panel"><div class="metric" th:text="#{category.audios}">Áudios</div><div class="value" th:text="${summary.audios()}">0</div></div>
+		<div class="panel"><div class="metric" th:text="#{category.documents}">Documentos</div><div class="value" th:text="${summary.documents()}">0</div></div>
+		<div class="panel"><div class="metric" th:text="#{category.others}">Outros</div><div class="value" th:text="${summary.others()}">0</div></div>
+		<div class="panel"><div class="metric" th:text="#{library.totalSize}">Tamanho total</div><div class="value" th:text="${summary.totalSize().formatted()}">0 B</div></div>
+	</div>
+	<div class="chart-block" th:if="${summary.totalFiles() > 0}" th:with="total=${summary.totalFiles()}">
+		<h3 class="chart-title" th:text="#{library.proportionTitle}">Proporção por categoria</h3>
+		<p class="chart-caption muted" th:text="#{library.proportionCaption}">Quanto cada categoria representa do total de arquivos catalogados. A parte pintada de cada barra é a fatia da categoria; a contagem e o percentual aparecem dentro da barra.</p>
+		<div class="prop-chart">
+			<div class="prop-row">
+				<span class="prop-label" th:text="#{category.photos}">Fotos</span>
+				<span class="prop-track">
+					<span class="prop-fill photos" th:style="'width:' + ${summary.photos() * 100.0 / total} + '%'"></span>
+					<span class="prop-value" th:text="${summary.photos()} + ' (' + ${#numbers.formatDecimal(summary.photos() * 100.0 / total, 1, 1, 'COMMA')} + '%)'">0</span>
+				</span>
+			</div>
+			<div class="prop-row">
+				<span class="prop-label" th:text="#{category.videos}">Vídeos</span>
+				<span class="prop-track">
+					<span class="prop-fill videos" th:style="'width:' + ${summary.videos() * 100.0 / total} + '%'"></span>
+					<span class="prop-value" th:text="${summary.videos()} + ' (' + ${#numbers.formatDecimal(summary.videos() * 100.0 / total, 1, 1, 'COMMA')} + '%)'">0</span>
+				</span>
+			</div>
+			<div class="prop-row">
+				<span class="prop-label" th:text="#{category.audios}">Áudios</span>
+				<span class="prop-track">
+					<span class="prop-fill audios" th:style="'width:' + ${summary.audios() * 100.0 / total} + '%'"></span>
+					<span class="prop-value" th:text="${summary.audios()} + ' (' + ${#numbers.formatDecimal(summary.audios() * 100.0 / total, 1, 1, 'COMMA')} + '%)'">0</span>
+				</span>
+			</div>
+			<div class="prop-row">
+				<span class="prop-label" th:text="#{category.documents}">Documentos</span>
+				<span class="prop-track">
+					<span class="prop-fill documents" th:style="'width:' + ${summary.documents() * 100.0 / total} + '%'"></span>
+					<span class="prop-value" th:text="${summary.documents()} + ' (' + ${#numbers.formatDecimal(summary.documents() * 100.0 / total, 1, 1, 'COMMA')} + '%)'">0</span>
+				</span>
+			</div>
+			<div class="prop-row">
+				<span class="prop-label" th:text="#{category.others}">Outros</span>
+				<span class="prop-track">
+					<span class="prop-fill others" th:style="'width:' + ${summary.others() * 100.0 / total} + '%'"></span>
+					<span class="prop-value" th:text="${summary.others()} + ' (' + ${#numbers.formatDecimal(summary.others() * 100.0 / total, 1, 1, 'COMMA')} + '%)'">0</span>
+				</span>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>

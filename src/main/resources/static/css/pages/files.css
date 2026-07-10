@@ -1,0 +1,510 @@
+.explorer-summary {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	padding: 8px 12px;
+}
+
+.explorer-summary div {
+	background: var(--bg-subtle);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 6px 12px;
+}
+
+.explorer-summary strong {
+	display: block;
+	font-size: 18px;
+	margin-top: 2px;
+}
+
+.files-page > .section {
+	margin-top: 10px;
+}
+
+.files-page > .section:first-child {
+	margin-top: 0;
+}
+
+.files-page .explorer-nav ~ .section,
+.files-page .explorer-items-toolbar {
+	margin-top: 0;
+}
+
+.explorer-items-toolbar {
+	padding: 8px 12px;
+}
+
+.explorer-load-status {
+	font-size: 12px;
+}
+
+.explorer-sentinel {
+	height: 1px;
+}
+
+.explorer-breadcrumb {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 8px 12px;
+}
+
+.explorer-breadcrumb:empty {
+	display: none;
+}
+
+.explorer-breadcrumb-item {
+	color: var(--muted);
+	font-size: 12.5px;
+	text-decoration: none;
+}
+
+a.explorer-breadcrumb-item:hover {
+	color: var(--accent);
+	text-decoration: underline;
+}
+
+.explorer-breadcrumb-item.current {
+	color: var(--text);
+	font-weight: 700;
+}
+
+.explorer-breadcrumb i {
+	color: var(--muted);
+	font-size: 10px;
+}
+
+.explorer-nav {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 10px 12px;
+}
+
+.explorer-nav-buttons {
+	display: flex;
+	flex-shrink: 0;
+	gap: 6px;
+}
+
+.icon-button {
+	align-items: center;
+	background: var(--accent-soft);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--text);
+	cursor: pointer;
+	display: inline-flex;
+	font-size: 16px;
+	height: 38px;
+	justify-content: center;
+	text-decoration: none;
+	width: 38px;
+}
+
+.icon-button:hover {
+	background: var(--accent-soft-hover);
+}
+
+.icon-button.disabled,
+.icon-button:disabled {
+	color: var(--muted);
+	cursor: not-allowed;
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.explorer-address {
+	align-items: center;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	display: flex;
+	flex: 1;
+	gap: 8px;
+	min-width: 220px;
+	padding: 0 6px 0 12px;
+}
+
+.explorer-address i {
+	color: var(--muted);
+}
+
+.explorer-address-input {
+	border: 0;
+	flex: 1;
+	font: inherit;
+	overflow: hidden;
+	padding: 9px 4px;
+	text-overflow: ellipsis;
+}
+
+.explorer-address-input:focus {
+	box-shadow: none;
+	outline: 0;
+}
+
+.explorer-address button {
+	background: transparent;
+	border-radius: 6px;
+	color: var(--accent);
+	font-size: 20px;
+	line-height: 1;
+	padding: 6px 8px;
+}
+
+.explorer-address button:hover {
+	background: var(--accent-soft);
+}
+
+.explorer-view-switch {
+	display: flex;
+	flex-shrink: 0;
+	gap: 6px;
+}
+
+.explorer-view-switch a {
+	align-items: center;
+	background: var(--accent-soft);
+	border-radius: 6px;
+	color: var(--accent-strong);
+	display: inline-flex;
+	font-size: 16px;
+	height: 38px;
+	justify-content: center;
+	text-decoration: none;
+	width: 38px;
+}
+
+.explorer-view-switch a.active {
+	background: var(--accent);
+	color: #fff;
+}
+
+.explorer-drive,
+.explorer-size {
+	flex-shrink: 0;
+}
+
+.explorer-drive select,
+.explorer-size select {
+	height: 38px;
+	padding: 0 8px;
+	width: auto;
+}
+
+.explorer-details a,
+.explorer-tile a,
+.explorer-tile > div {
+	color: inherit;
+	display: block;
+	max-width: 100%;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	text-decoration: none;
+}
+
+.explorer-details tr.missing {
+	background: var(--warn-soft);
+}
+
+.file-symbol {
+	color: #0369a1;
+	display: inline-block;
+	font-size: 28px;
+	line-height: 1;
+	margin-right: 8px;
+	vertical-align: middle;
+}
+
+.file-symbol.folder {
+	color: #f59e0b;
+}
+
+.file-symbol.pdf {
+	color: #b91c1c;
+}
+
+.file-symbol.word {
+	color: #1d4ed8;
+}
+
+.file-symbol.excel {
+	color: #15803d;
+}
+
+.file-symbol.powerpoint {
+	color: #c2410c;
+}
+
+.file-symbol.archive {
+	color: #a16207;
+}
+
+.file-symbol.audio {
+	color: #7e22ce;
+}
+
+.file-symbol.video {
+	color: #4338ca;
+}
+
+.file-symbol.image {
+	color: #0f766e;
+}
+
+.file-symbol.text,
+.file-symbol.generic {
+	color: #475569;
+}
+
+.file-symbol.missing {
+	color: var(--warn);
+}
+
+.file-thumb {
+	aspect-ratio: 1;
+	background: var(--bg-subtle);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	display: block;
+	margin: 0 auto 10px;
+	object-fit: cover;
+	width: 72px;
+}
+
+.details-thumb {
+	display: inline-block;
+	height: 34px;
+	margin: 0 8px 0 0;
+	vertical-align: middle;
+	width: 34px;
+}
+
+.explorer-icons {
+	display: grid;
+	gap: 12px;
+}
+
+.explorer-icons.small {
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.explorer-icons.small .file-thumb {
+	width: 48px;
+}
+
+.explorer-icons.large {
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.explorer-icons.large .file-thumb {
+	width: 96px;
+}
+
+.explorer-icons.xlarge {
+	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.explorer-icons.xlarge .file-thumb {
+	border-radius: 10px;
+	width: 150px;
+}
+
+.explorer-tile {
+	align-items: center;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	display: flex;
+	justify-content: center;
+	min-height: 112px;
+	min-width: 0;
+	padding: 12px;
+	position: relative;
+	text-align: center;
+}
+
+.inventory-dot {
+	border: 2px solid #fff;
+	border-radius: 999px;
+	box-shadow: 0 0 0 1px rgba(16, 24, 40, 0.08);
+	height: 12px;
+	position: absolute;
+	right: 8px;
+	top: 8px;
+	width: 12px;
+}
+
+.inventory-dot.ok {
+	background: var(--ok);
+}
+
+.inventory-dot.warn {
+	background: var(--warn);
+}
+
+.explorer-tile:hover {
+	background: var(--bg-subtle);
+	border-color: var(--line);
+}
+
+.explorer-tile.missing {
+	background: var(--warn-soft);
+	border-color: var(--warn);
+}
+
+.explorer-tile .file-symbol {
+	display: block;
+	margin: 0 auto 10px;
+}
+
+.explorer-icons.large .file-symbol {
+	font-size: 54px;
+}
+
+.explorer-icons.xlarge .file-symbol {
+	font-size: 84px;
+}
+
+.explorer-icons.xlarge .file-symbol.missing {
+	font-size: 72px;
+}
+
+/*
+ * The Arquivos explorer reuses the shared media-cards component (fragments/media-cards.html) for its
+ * file cards, in both the icon grid (.media-grid/.media-tile) and the Detalhes table (.media-cell).
+ * The reuse is code-only: these page-scoped rules restyle that shared markup to match the explorer's
+ * original look exactly - compact borderless tiles, square bordered thumbnails, and the explorer's
+ * own per-type icon colors and sizes - so nothing changes visually. The grid columns and thumbnail
+ * sizes already match the component, so only the deltas below are overridden. Directories are
+ * rendered by the page itself (the component is files-only).
+ */
+
+/* Compact, borderless tiles like the original explorer (the component draws a bordered card panel). */
+.files-page .media-grid {
+	gap: 12px;
+}
+
+.files-page .media-tile {
+	background: transparent;
+	border-color: transparent;
+	border-radius: 8px;
+	min-height: 112px;
+}
+
+.files-page .media-tile:hover {
+	background: var(--bg-subtle);
+	border-color: var(--line);
+}
+
+.files-page .media-tile.missing {
+	background: var(--warn-soft);
+	border-color: var(--warn);
+}
+
+/* Square, bordered thumbnails (the component draws them borderless with a smaller radius). */
+.files-page .media-thumb {
+	border: 1px solid var(--line);
+	border-radius: 8px;
+}
+
+.files-page .media-grid.xlarge .media-thumb {
+	border-radius: 10px;
+}
+
+/* The explorer's original per-view icon sizes (the component uses different ones). */
+.files-page .media-grid.small .media-symbol {
+	font-size: 28px;
+}
+
+.files-page .media-grid.large .media-symbol {
+	font-size: 54px;
+}
+
+.files-page .media-grid.xlarge .media-symbol {
+	font-size: 84px;
+}
+
+.files-page .media-cell .media-symbol {
+	font-size: 28px;
+}
+
+/*
+ * The base table draws cells vertical-align: top; center the explorer rows so the icon/thumbnail in
+ * the Nome cell lines up with the text in the other columns (Tipo/Tamanho/Modificado/Status).
+ */
+.files-page .explorer-details td {
+	vertical-align: middle;
+}
+
+/* Wrap long names like the original explorer instead of truncating with an ellipsis. */
+.files-page .media-card-name {
+	overflow: visible;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.files-page .media-tile .media-card-name {
+	font-size: inherit;
+}
+
+/* Per-type icon colors preserved (the component draws icons in a single neutral tone). */
+.files-page .media-symbol.folder {
+	color: #f59e0b;
+}
+
+.files-page .media-symbol.pdf {
+	color: #b91c1c;
+}
+
+.files-page .media-symbol.word {
+	color: #1d4ed8;
+}
+
+.files-page .media-symbol.excel {
+	color: #15803d;
+}
+
+.files-page .media-symbol.powerpoint {
+	color: #c2410c;
+}
+
+.files-page .media-symbol.archive {
+	color: #a16207;
+}
+
+.files-page .media-symbol.audio {
+	color: #7e22ce;
+}
+
+.files-page .media-symbol.video {
+	color: #4338ca;
+}
+
+.files-page .media-symbol.image {
+	color: #0f766e;
+}
+
+.files-page .media-symbol.text,
+.files-page .media-symbol.generic {
+	color: #475569;
+}
+
+.files-page .media-symbol.missing {
+	color: var(--warn);
+}
+
+@media (max-width: 900px) {
+	.explorer-summary {
+		grid-template-columns: 1fr;
+	}
+
+	.explorer-address {
+		min-width: 100%;
+		order: 3;
+	}
+
+}

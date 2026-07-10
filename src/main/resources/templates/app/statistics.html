@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.statistics}, 'statistics')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.statistics})}">
+	<section class="stack">
+
+		<section class="panel">
+			<h2 th:text="#{statistics.library}">Biblioteca</h2>
+			<p class="muted" th:text="#{statistics.libraryHint}">Distribuição dos arquivos catalogados por categoria, extensão e codec de vídeo.</p>
+			<div th:replace="~{fragments/library :: summary(${summary})}"></div>
+			<div class="actions section">
+				<a class="button secondary small" th:href="@{/api/catalog/export(format='csv')}" download th:text="#{statistics.exportCsv}">Exportar catálogo (CSV)</a>
+				<a class="button secondary small" th:href="@{/api/catalog/export(format='json')}" download th:text="#{statistics.exportJson}">Exportar catálogo (JSON)</a>
+			</div>
+		</section>
+
+		<section class="panel section">
+			<h2 th:text="#{statistics.byExtension}">Por extensão</h2>
+			<div class="table-wrap">
+				<table class="table section">
+					<thead><tr><th th:text="#{statistics.extension}">Extensão</th><th th:text="#{common.category}">Categoria</th><th th:text="#{category.files}">Arquivos</th><th>%</th><th th:text="#{common.size}">Tamanho</th></tr></thead>
+					<tbody>
+					<tr th:each="ext : ${extensions}">
+						<td th:text="${ext.extension()}">mp4</td>
+						<td th:text="${#messages.msg('enum.fileType.' + ext.fileType().name())}">Vídeo</td>
+						<td th:text="${ext.files()}">0</td>
+						<td th:text="${#numbers.formatDecimal(ext.percentage(), 1, 2, 'COMMA')} + '%'">0%</td>
+						<td th:text="${ext.totalSize().formatted()}">0 B</td>
+					</tr>
+					<tr th:if="${extensions.isEmpty()}"><td colspan="5" th:text="#{statistics.noFiles}">Nenhum arquivo catalogado ainda.</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section class="panel section" th:if="${!codecs.isEmpty()}">
+			<h2 th:text="#{statistics.videoCodecs}">Codecs de vídeo</h2>
+			<div class="table-wrap">
+				<table class="table section">
+					<thead><tr><th th:text="#{statistics.codec}">Codec</th><th th:text="#{category.files}">Arquivos</th><th>%</th><th th:text="#{common.size}">Tamanho</th></tr></thead>
+					<tbody>
+					<tr th:each="codec : ${codecs}">
+						<td th:text="${codec.codec()}">H265</td>
+						<td th:text="${codec.files()}">0</td>
+						<td th:text="${#numbers.formatDecimal(codec.percentage(), 1, 2, 'COMMA')} + '%'">0%</td>
+						<td th:text="${codec.totalSize().formatted()}">0 B</td>
+					</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section class="panel section">
+			<h2 th:text="#{statistics.performance}">Execuções — desempenho</h2>
+			<p class="muted" th:text="#{statistics.performanceHint}">Telemetria persistida de cada inventário/organização: duração, velocidade, configuração e fases.</p>
+
+			<div class="chart-block" th:if="${latestExecution != null}">
+				<h3 class="chart-title" th:text="#{statistics.phaseTimeTitle}">Tempo por fase — última execução</h3>
+				<p class="chart-caption muted" th:if="${latestExecution.startedAt() != null}"
+						th:text="#{statistics.phaseCaptionDated(${latestExecution.executionType()}, ${#temporals.format(latestExecution.startedAt(), 'dd/MM/yyyy HH:mm')})}">
+					Duração de cada etapa da execução mais recente.</p>
+				<p class="chart-caption muted" th:unless="${latestExecution.startedAt() != null}"
+						th:text="#{statistics.phaseCaption(${latestExecution.executionType()})}"></p>
+				<div class="chart" th:if="${!latestPhases.isEmpty() and maxLatestPhaseMillis > 0}">
+					<div class="chart-row" th:each="phase : ${latestPhases}">
+						<span class="chart-label" th:text="${phase.phase}">EXTRACTION</span>
+						<span class="chart-track"><span class="chart-bar" th:style="'width:' + ${phase.durationMillis * 100.0 / maxLatestPhaseMillis} + '%'"></span></span>
+						<span class="chart-value" th:text="${#numbers.formatDecimal(phase.durationMillis / 1000.0, 1, 1, 'COMMA')} + ' s'">0 s</span>
+					</div>
+				</div>
+				<p class="muted" th:if="${latestPhases.isEmpty()}" th:text="#{statistics.noPhases}">Sem fases registradas para a última execução.</p>
+			</div>
+
+			<div class="chart-block" th:if="${maxFilesPerSecond > 0}">
+				<h3 class="chart-title" th:text="#{statistics.filesPerSecTitle}">Arquivos/s por execução</h3>
+				<p class="chart-caption muted" th:text="#{statistics.filesPerSecHint}">Velocidade de processamento das execuções mais recentes (barra maior = mais rápida). Rótulo = data de início.</p>
+				<div class="chart">
+					<div class="chart-row" th:each="row : ${perfSeries}">
+						<span class="chart-label" th:text="${row.startedAt() != null ? #temporals.format(row.startedAt(), 'dd/MM HH:mm') : '—'}">—</span>
+						<span class="chart-track"><span class="chart-bar videos" th:style="'width:' + ${(row.filesPerSecond() != null ? row.filesPerSecond() : 0) * 100.0 / maxFilesPerSecond} + '%'"></span></span>
+						<span class="chart-value" th:text="${row.filesPerSecond() != null ? #numbers.formatDecimal(row.filesPerSecond(), 1, 1, 'COMMA') : '—'}">—</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="chart-block" th:if="${maxDurationMillis > 0}">
+				<h3 class="chart-title" th:text="#{statistics.durationTitle}">Duração por execução</h3>
+				<p class="chart-caption muted" th:text="#{statistics.durationHint}">Tempo total das execuções mais recentes (barra maior = demorou mais). Rótulo = data de início.</p>
+				<div class="chart">
+					<div class="chart-row" th:each="row : ${perfSeries}">
+						<span class="chart-label" th:text="${row.startedAt() != null ? #temporals.format(row.startedAt(), 'dd/MM HH:mm') : '—'}">—</span>
+						<span class="chart-track"><span class="chart-bar" th:style="'width:' + ${(row.durationMillis() != null ? row.durationMillis() : 0) * 100.0 / maxDurationMillis} + '%'"></span></span>
+						<span class="chart-value" th:text="${row.durationMillis() != null ? #numbers.formatDecimal(row.durationMillis() / 1000.0, 1, 1, 'COMMA') + ' s' : '—'}">—</span>
+					</div>
+				</div>
+			</div>
+
+			<form method="get" th:action="@{/app/statistics}" class="form-inline">
+				<label><span th:text="#{statistics.version}">Versão</span>
+					<select name="version">
+						<option value="" th:selected="${selectedVersion == null or selectedVersion.isEmpty()}" th:text="#{statistics.allVersions}">Todas</option>
+						<option th:each="v : ${versions}" th:value="${v}" th:text="${v}"
+								th:selected="${v == selectedVersion}"></option>
+					</select>
+				</label>
+				<button type="submit" class="secondary" th:text="#{statistics.filter}">Filtrar</button>
+			</form>
+			<form method="get" th:action="@{/app/statistics/compare}">
+				<p class="muted" th:if="${!telemetry.isEmpty()}" th:text="#{statistics.compareHint}">Marque duas ou mais execuções e compare-as lado a lado.</p>
+				<div class="table-wrap">
+					<table class="table section">
+						<thead><tr>
+							<th></th><th th:text="#{statistics.version}">Versão</th><th th:text="#{common.type}">Tipo</th><th th:text="#{common.status}">Status</th><th th:text="#{common.start}">Início</th><th th:text="#{statistics.duration}">Duração</th><th th:text="#{statistics.filesPerSec}">Arquivos/s</th>
+							<th th:text="#{category.files}">Arquivos</th><th th:text="#{common.errors}">Erros</th><th th:text="#{statistics.workers}">Workers</th><th th:text="#{statistics.chunk}">Chunk</th><th>ffmpeg</th><th>ffprobe</th><th></th>
+						</tr></thead>
+						<tbody>
+						<tr th:each="row : ${telemetry}">
+							<td><input type="checkbox" name="ids" th:value="${row.id()}"
+									th:attr="aria-label=#{statistics.compareAria(${row.id()})}"></td>
+							<td th:text="${row.applicationVersion()}">3.3.0</td>
+							<td th:text="${row.executionType()}">INVENTORY</td>
+							<td><span class="badge"
+									th:classappend="${row.status().name() == 'FINISHED' ? 'ok' : (row.status().name() == 'FINISHED_WITH_ERRORS' ? 'warn' : (row.status().name() == 'CANCELLED' ? 'info' : 'error'))}"
+									th:text="${row.status()}">FINISHED</span></td>
+							<td th:text="${row.startedAt() != null ? #temporals.format(row.startedAt(), 'dd/MM/yyyy HH:mm') : '—'}">—</td>
+							<td th:text="${row.durationMillis() != null ? #numbers.formatDecimal(row.durationMillis() / 1000.0, 1, 1, 'COMMA') + ' s' : '—'}">—</td>
+							<td th:text="${row.filesPerSecond() != null ? #numbers.formatDecimal(row.filesPerSecond(), 1, 1, 'COMMA') : '—'}">—</td>
+							<td th:text="${row.filesFound()}">0</td>
+							<td th:text="${row.errors()}">0</td>
+							<td th:text="${row.workers() != null ? row.workers() : '—'}">—</td>
+							<td th:text="${row.chunkSize() != null ? row.chunkSize() : '—'}">—</td>
+							<td th:text="${row.ffmpegPhotoHashLimit() != null ? row.ffmpegPhotoHashLimit() : '—'}">—</td>
+							<td th:text="${row.ffprobeVideoLimit() != null ? row.ffprobeVideoLimit() : '—'}">—</td>
+							<td><a class="button secondary small" th:href="@{/app/statistics/executions/{id}(id=${row.id()})}" th:text="#{statistics.phases}">Fases</a></td>
+						</tr>
+						<tr th:if="${telemetry.isEmpty()}"><td colspan="14" th:text="#{statistics.noTelemetry}">Nenhuma execução medida ainda.</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="actions" th:if="${!telemetry.isEmpty()}">
+					<button type="submit" th:text="#{statistics.compareSelected}">Comparar selecionadas</button>
+				</div>
+			</form>
+		</section>
+
+	</section>
+</div>
+</body>
+</html>

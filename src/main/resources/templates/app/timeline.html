@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.timeline}, 'timeline')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.timeline})}">
+<section class="timeline-page" id="timelineRoot" aria-busy="true"
+		th:attr="data-geo-configured=${geoConfigured}, data-geo-notice-dismissed=${geoNoticeDismissed}, data-is-admin=${isAdmin}, data-timeline-type=${timelineType}">
+	<header class="timeline-toolbar panel">
+		<div>
+			<h1 th:text="#{nav.timeline}">Timeline</h1>
+			<p class="muted" th:text="#{timeline.subtitle}">Fotos e vídeos organizados pela data de captura.</p>
+		</div>
+		<div class="timeline-filters">
+			<label class="timeline-filter"><span th:text="#{timeline.show}">Mostrar</span>
+				<select id="timelineType">
+					<option value="ALL" th:text="#{timeline.all}">Fotos e vídeos</option>
+					<option value="PHOTO" th:text="#{timeline.onlyPhotos}">Somente fotos</option>
+					<option value="VIDEO" th:text="#{timeline.onlyVideos}">Somente vídeos</option>
+				</select>
+			</label>
+			<details class="timeline-filter filter-menu" id="timelineOrigin">
+				<summary><span th:text="#{timeline.origin}">Origem</span></summary>
+				<div class="filter-menu-panel">
+					<label class="filter-menu-option" th:each="option : ${subcategoryOptions}">
+						<input type="checkbox" class="timeline-origin-option" th:value="${option.name()}"
+								th:checked="${selectedSubcategories.contains(option.name())}">
+						<span th:text="${#messages.msg('timeline.subcategory.' + option.name())}">Câmera</span>
+					</label>
+				</div>
+			</details>
+		</div>
+	</header>
+	<div id="geoNotice" class="panel geo-notice" role="status" th:if="${geoNoticeVisible}">
+		<i class="bi bi-geo-alt" aria-hidden="true"></i>
+		<div class="geo-notice-text">
+			<strong th:text="#{timeline.geo.title}">A localização das mídias ainda não aparece.</strong>
+			<span th:if="${isAdmin}" th:text="#{timeline.geo.admin}">Configure a base geográfica offline para resolver país, estado e cidade a partir do GPS das fotos.</span>
+			<span th:unless="${isAdmin}" th:text="#{timeline.geo.user}">Peça a um administrador para configurar a base geográfica offline.</span>
+		</div>
+		<div class="geo-notice-actions">
+			<a th:if="${isAdmin}" class="button secondary" th:href="@{/app/settings} + '#geo-admin'" th:text="#{timeline.geo.configure}">Configurar base geográfica</a>
+			<button type="button" class="button secondary" id="geoNoticeDismiss" th:text="#{timeline.geo.dismiss}">Não mostrar mais</button>
+		</div>
+	</div>
+	<div class="timeline-body">
+		<nav id="timelineNavigator" class="timeline-navigator panel" th:aria-label="#{timeline.navAria}" aria-label="Navegação cronológica">
+			<strong th:text="#{timeline.periods}">Períodos</strong>
+			<div id="timelineNavigatorItems" th:text="#{lightbox.loading}">Carregando…</div>
+		</nav>
+		<div class="timeline-stream">
+			<div id="timelineStatus" class="timeline-status" role="status" th:text="#{timeline.loadingLibrary}">Carregando sua biblioteca…</div>
+			<div id="timelineContent" class="timeline-content" aria-live="polite"></div>
+		</div>
+	</div>
+	<div id="timelineEmpty" class="panel timeline-empty" hidden>
+		<i class="bi bi-images" aria-hidden="true"></i>
+		<h2 th:text="#{timeline.empty.title}">Nenhuma mídia encontrada</h2>
+		<p class="muted" th:text="#{timeline.empty.hint}">Execute o inventário para adicionar fotos e vídeos à Timeline.</p>
+	</div>
+	<div id="timelineLoadStatus" class="timeline-load-more muted" role="status"></div>
+	<div id="timelineSentinel" class="timeline-sentinel" aria-hidden="true"></div>
+</section>
+</div>
+<script th:src="@{/js/pages/timeline.js}"></script>
+</body>
+</html>

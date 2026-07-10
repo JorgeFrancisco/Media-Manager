@@ -1,0 +1,54 @@
+HELP.md
+
+# Projeto
+/target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+/workspace/
+.*.txt
+.*.zip
+.*.rar
+
+### Docker ###
+.env
+/library/
+
+### Eclipse / Spring Tool Suite ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# Ferramentas de IA (configuração local)
+.codex/
+.agents/
+
+# Binarios externos (ffmpeg/ffprobe/exiftool) - grandes demais pra git e com implicacoes de
+# licenca GPL quando a build usa --enable-gpl; ver "External Tools" no README para como obter.
+tools/bin/*.exe
+tools/bin/*.dll
+# Artefatos do mount FUSE (arquivos apagados ainda abertos)
+.fuse_hidden*

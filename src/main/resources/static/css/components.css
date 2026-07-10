@@ -1,0 +1,792 @@
+.grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Shared folder-picker dialog + inline path field. Global (not pages/settings.css)
+   because the picker is reused on onboarding and organization too. */
+.folder-field { align-items: center; display: flex; gap: 8px; }
+.folder-field input { flex: 1 1 auto; min-width: 0; }
+.folder-field .folder-picker-open { flex: 0 0 auto; white-space: nowrap; }
+
+.folder-picker { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: var(--text); max-width: 680px; padding: 0; width: calc(100% - 32px); }
+.folder-picker::backdrop { background: rgba(0, 0, 0, .58); }
+.folder-picker-header { align-items: start; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 18px 20px; }
+.folder-picker-header h2, .folder-picker-header p { margin: 0; }
+.folder-picker-path { background: var(--bg); border-bottom: 1px solid var(--line); font-family: Consolas, monospace; overflow-wrap: anywhere; padding: 10px 20px; }
+.folder-picker-list { max-height: min(52vh, 480px); min-height: 220px; overflow: auto; padding: 8px; }
+.folder-picker-entry { align-items: center; background: transparent; border: 0; color: var(--text); display: flex; gap: 9px; padding: 9px 12px; text-align: left; width: 100%; }
+.folder-picker-entry:hover, .folder-picker-entry:focus-visible { background: var(--accent-soft); }
+.folder-picker-actions { border-top: 1px solid var(--line); justify-content: space-between; padding: 14px 20px; }
+
+.grid.two {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+	padding: 18px;
+}
+
+.metric {
+	color: var(--muted);
+	font-size: 12px;
+	text-transform: uppercase;
+}
+
+.value {
+	font-size: 26px;
+	font-weight: 700;
+	margin-top: 8px;
+}
+
+.section {
+	margin-top: 16px;
+}
+
+/* --- Bar charts ---------------------------------------------------------- */
+/* Lightweight, dependency-free bar charts: pure CSS widths driven by inline styles from
+   Thymeleaf. Global (not pages/statistics.css) because the shared fragments/library.html
+   summary block reuses them on the Dashboard too. Colours come from theme variables so
+   light/dark both work. */
+
+.chart-block {
+	margin-top: 18px;
+}
+
+.chart-title {
+	font-size: 15px;
+	font-weight: 600;
+	margin: 0 0 2px;
+}
+
+.chart-caption {
+	font-size: 12px;
+	margin: 0 0 10px;
+	max-width: 60ch;
+}
+
+.chart {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	margin-top: 0.5rem;
+}
+
+.chart-row {
+	display: grid;
+	grid-template-columns: 8.5rem 1fr auto;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.chart-label {
+	color: var(--muted);
+	font-size: 0.86rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.chart-track {
+	background: var(--bg-subtle);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	height: 0.85rem;
+	overflow: hidden;
+}
+
+.chart-bar {
+	display: block;
+	height: 100%;
+	background: var(--accent);
+	border-radius: 6px 0 0 6px;
+	min-width: 2px;
+	transition: width 0.2s ease;
+}
+
+.chart-bar.photos { background: var(--accent); }
+.chart-bar.videos { background: var(--teal); }
+.chart-bar.audios { background: var(--warn); }
+.chart-bar.documents { background: var(--ok); }
+.chart-bar.others { background: var(--muted); }
+
+.chart-value {
+	font-variant-numeric: tabular-nums;
+	font-size: 0.86rem;
+	color: var(--text);
+	white-space: nowrap;
+}
+
+/* --- Proportion chart ---------------------------------------------------- */
+/* Part-of-whole chart (fragments/library.html): every row is a full-width track of the
+   same length (ends aligned), the coloured fill shows the category's share, and the count
+   and percentage sit inside the bar on the right. The right edge always lands over the
+   unfilled part of the track (no category dominates the whole bar), so the value stays
+   legible in both themes without overlaying coloured fill. */
+
+.prop-chart {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 0.6rem;
+}
+
+.prop-row {
+	display: grid;
+	grid-template-columns: 7.5rem 1fr;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.prop-label {
+	color: var(--muted);
+	font-size: 0.86rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.prop-track {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 1.6rem;
+	background: var(--bg-subtle);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.prop-fill {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	min-width: 3px;
+	background: var(--accent);
+	border-radius: 5px 0 0 5px;
+	transition: width 0.2s ease;
+}
+
+.prop-fill.photos { background: var(--accent); }
+.prop-fill.videos { background: var(--teal); }
+.prop-fill.audios { background: var(--warn); }
+.prop-fill.documents { background: var(--ok); }
+.prop-fill.others { background: var(--muted); }
+
+.prop-value {
+	position: relative;
+	z-index: 1;
+	margin-left: auto;
+	padding-right: 0.6rem;
+	font-size: 0.8rem;
+	font-variant-numeric: tabular-nums;
+	color: var(--text);
+	white-space: nowrap;
+}
+
+.title {
+	font-size: 24px;
+	font-weight: 700;
+	margin: 0;
+}
+
+/*
+ * align-items: start keeps every field pinned to the top of its row instead of the grid default
+ * (stretch), which was letting fields with extra content below the input (e.g. Layout's hint
+ * text in organization.html) grow taller than their row neighbor and drag/stretch that neighbor's
+ * own label+input out of alignment.
+ */
+.form-grid {
+	align-items: start;
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/*
+ * min-width: 0 overrides the grid default (auto), which sizes a grid item to fit its content even
+ * when the track itself is minmax(0, 1fr) - without it, a <select> with a long single-line option
+ * (e.g. organization.html's Layout options) can force this label, and the whole column, wider than
+ * intended instead of wrapping/eliding inside it.
+ */
+label {
+	color: var(--muted);
+	display: grid;
+	font-size: 12px;
+	gap: 6px;
+	min-width: 0;
+}
+
+input,
+select {
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	font: inherit;
+	padding: 10px;
+	width: 100%;
+}
+
+input:focus,
+select:focus {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+	outline: 0;
+}
+
+.checks {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin: 14px 0;
+}
+
+.checks label {
+	align-items: center;
+	display: flex;
+	flex-direction: row;
+}
+
+.checks input {
+	width: auto;
+}
+
+.actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+button,
+.button {
+	background: var(--accent);
+	border: 0;
+	border-radius: 6px;
+	color: #fff;
+	cursor: pointer;
+	font: inherit;
+	font-weight: 700;
+	padding: 10px 14px;
+}
+
+button:hover,
+.button:hover {
+	background: var(--accent-hover);
+}
+
+.button.secondary,
+button.secondary {
+	background: var(--accent-soft);
+	/* A border is what gives secondary buttons a visible edge - without it the soft
+	   background blends into panels/bg in dark mode and the button looks like plain
+	   low-contrast text. Fixed here once so every screen is consistent. */
+	border: 1px solid var(--accent-soft-line);
+	color: var(--accent-strong);
+}
+
+.button.secondary:hover,
+button.secondary:hover {
+	background: var(--accent-soft-hover);
+}
+
+/* Destructive action (e.g. "Excluir selecionados"). Fixed red instead of --danger because
+   that token flips to a light red in dark mode, which loses contrast under white text. */
+.button.danger,
+button.danger {
+	background: #dc2626;
+	color: #fff;
+}
+
+.button.danger:hover,
+button.danger:hover {
+	background: #b91c1c;
+}
+
+.button.disabled,
+button:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+a.button.disabled {
+	pointer-events: none;
+}
+
+/* Compact variant for row-level actions (e.g. "Abrir" in a table), where the default .button padding/weight is too heavy. */
+.button.small {
+	font-size: 12px;
+	padding: 6px 10px;
+}
+
+/*
+ * Icon + text link back to a list page (e.g. "Voltar" on execution-detail.html) - a plain .button
+ * doesn't add spacing between an <i> icon and its text, this does.
+ */
+.back-link {
+	align-items: center;
+	display: inline-flex;
+	gap: 6px;
+	margin-bottom: 16px;
+}
+
+.table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.table th,
+.table td {
+	border-bottom: 1px solid var(--line);
+	padding: 10px;
+	text-align: left;
+	/* Center cells vertically so a wrapping cell (e.g. a two-line UUID) stays aligned with the
+	   single-line cells in the same row, instead of them clinging to the top. */
+	vertical-align: middle;
+}
+
+.table tbody tr:hover {
+	background: var(--bg-subtle);
+}
+
+/* Execution detail: Reprocessar + Undo side by side. */
+.execution-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 12px;
+}
+
+.table th {
+	color: var(--muted);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.table-wrap {
+	overflow-x: auto;
+}
+
+.tab-strip {
+	border-bottom: 1px solid var(--line);
+	display: flex;
+	gap: 4px;
+}
+
+.tab-strip a {
+	border-bottom: 2px solid transparent;
+	color: var(--muted);
+	font-size: 13px;
+	font-weight: 600;
+	padding: 10px 4px;
+	text-decoration: none;
+}
+
+.tab-strip a.active {
+	border-bottom-color: var(--accent);
+	color: var(--text);
+}
+
+.table-toolbar {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: flex-end;
+}
+
+.table-toolbar span {
+	color: var(--muted);
+	margin-right: auto;
+}
+
+.pagination-toolbar {
+	background: var(--panel);
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+	position: sticky;
+	top: 16px;
+	z-index: 8;
+}
+
+.pagination {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.pagination-page {
+	color: var(--muted);
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+.table-toolbar .pagination span {
+	margin-right: 0;
+}
+
+@media (max-width: 700px) {
+	.pagination-toolbar {
+		position: static;
+	}
+}
+
+.table small {
+	color: var(--muted);
+	display: block;
+	margin-top: 4px;
+}
+
+.inline-form {
+	align-items: center;
+	display: grid;
+	gap: 8px;
+	grid-template-columns: minmax(220px, 1fr) auto;
+	min-width: 320px;
+}
+
+.inline-form button {
+	white-space: nowrap;
+}
+
+.input-with-action {
+	display: flex;
+	gap: 8px;
+}
+
+.input-with-action input {
+	flex: 1;
+}
+
+.input-with-action button {
+	white-space: nowrap;
+}
+
+.badge {
+	border: 1px solid transparent;
+	border-radius: 999px;
+	display: inline-block;
+	font-size: 12px;
+	padding: 4px 8px;
+}
+
+.badge.ok {
+	background: var(--ok-soft);
+	color: var(--ok);
+}
+
+.badge.warn {
+	background: var(--warn-soft);
+	color: var(--warn);
+}
+
+.badge.info {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+	color: var(--accent-strong);
+}
+
+.badge.error {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+/*
+ * Dark theme: the file-type icon palette is tuned for a white panel and fails the 3:1
+ * non-text contrast on the dark panel (contrast audit 2026-07). These lighter tints of the
+ * same hues restore >= 4.5:1 on #12213a. Folder (amber #f59e0b) already passes and stays.
+ * Defined here (global) so it covers every page that renders .file-symbol.
+ */
+.shell[data-theme="dark"] .file-symbol { color: #38bdf8; }
+.shell[data-theme="dark"] .file-symbol.pdf { color: #f87171; }
+.shell[data-theme="dark"] .file-symbol.word { color: #60a5fa; }
+.shell[data-theme="dark"] .file-symbol.excel { color: #34d399; }
+.shell[data-theme="dark"] .file-symbol.powerpoint { color: #fb923c; }
+.shell[data-theme="dark"] .file-symbol.archive { color: #fbbf24; }
+.shell[data-theme="dark"] .file-symbol.audio { color: #c084fc; }
+.shell[data-theme="dark"] .file-symbol.video { color: #818cf8; }
+.shell[data-theme="dark"] .file-symbol.image { color: #2dd4bf; }
+.shell[data-theme="dark"] .file-symbol.text,
+.shell[data-theme="dark"] .file-symbol.generic { color: #94a3b8; }
+
+.badge.muted {
+	background: var(--muted-soft);
+	border: 1px solid var(--line);
+	color: var(--text);
+}
+
+.version-pill {
+	background: var(--accent-soft);
+	border: 1px solid var(--accent-soft-line);
+	border-radius: 999px;
+	color: var(--accent-strong);
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 700;
+	padding: 5px 10px;
+}
+
+.alert {
+	background: var(--accent-soft);
+	border: 1px solid var(--accent-soft-line);
+	border-radius: 6px;
+	color: var(--text);
+	margin-bottom: 12px;
+	padding: 10px 12px;
+}
+
+.alert.error {
+	background: var(--danger-soft);
+	border-color: transparent;
+	color: var(--danger);
+}
+
+.alert.ok {
+	background: var(--ok-soft);
+	border-color: transparent;
+	color: var(--ok);
+}
+
+.alert.warn {
+	background: var(--warn-soft);
+	border-color: transparent;
+	color: var(--warn);
+}
+
+@media (max-width: 900px) {
+	.grid,
+	.grid.two,
+	.form-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* --------------------------------------------------------------------------
+   Shared media cards (fragments/media-cards.html). A file rendered as a
+   clickable thumbnail/icon + name, wired to the global lightbox. Reused by the
+   Quarentena screen (and, in future, the Arquivos explorer) so both agree on
+   thumbnail sizing and the details/small/large/xlarge view modes. All colors
+   come from the theme variables, so light/dark contrast stays correct.
+   -------------------------------------------------------------------------- */
+
+.media-card-open {
+	align-items: center;
+	color: var(--text);
+	display: inline-flex;
+	gap: 9px;
+	max-width: 100%;
+	min-width: 0;
+	text-decoration: none;
+}
+
+.media-card-open:hover {
+	color: var(--accent);
+}
+
+.media-card-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.media-thumb {
+	background: var(--bg-subtle);
+	border-radius: 6px;
+	object-fit: cover;
+}
+
+.media-symbol {
+	color: var(--muted);
+	font-size: 22px;
+	line-height: 1;
+}
+
+/* Details (table) layout: small inline thumbnail next to the name. */
+.media-cell .media-thumb {
+	height: 34px;
+	width: 34px;
+}
+
+.media-cell .media-symbol {
+	font-size: 20px;
+}
+
+/* Icon (tile) layouts. */
+.media-grid {
+	display: grid;
+	gap: 14px;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.media-grid.small {
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.media-grid.large {
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.media-grid.xlarge {
+	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.media-tile {
+	align-items: center;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 120px;
+	padding: 12px;
+	position: relative;
+	text-align: center;
+}
+
+.media-tile:hover {
+	border-color: var(--accent-soft-line);
+}
+
+.media-tile .media-card-open {
+	flex-direction: column;
+	gap: 6px;
+	max-width: 100%;
+	width: 100%;
+}
+
+.media-tile .media-card-name {
+	font-size: 12px;
+	max-width: 100%;
+}
+
+.media-grid.small .media-thumb {
+	height: 48px;
+	width: 48px;
+}
+
+.media-grid.large .media-thumb {
+	height: 96px;
+	width: 96px;
+}
+
+.media-grid.xlarge .media-thumb {
+	height: 150px;
+	width: 150px;
+}
+
+.media-grid.small .media-symbol {
+	font-size: 34px;
+}
+
+.media-grid.large .media-symbol {
+	font-size: 46px;
+}
+
+.media-grid.xlarge .media-symbol {
+	font-size: 60px;
+}
+
+/* Selection checkbox pinned to the tile corner, plus per-tile status/actions.
+   width:auto undoes the global `input { width:100% }` rule, which would otherwise
+   stretch this absolutely-positioned checkbox across the whole tile (worse the wider
+   the tile), the same override .tile-checkbox uses on the Duplicados grid. */
+.media-tile-select {
+	position: absolute;
+	right: 8px;
+	top: 8px;
+	width: auto;
+}
+
+.media-tile-meta {
+	margin-top: auto;
+	width: 100%;
+}
+
+.media-tile-meta .badge {
+	white-space: nowrap;
+}
+
+/* Shared dropdown filter (a <details> holding a checkbox list): reused by the
+   Timeline origin filter and the Duplicates type filter. Options are left-aligned
+   and wrap when the label is long. */
+.filter-menu {
+	position: relative;
+}
+
+.filter-menu > summary {
+	align-items: center;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	cursor: pointer;
+	display: inline-flex;
+	gap: 6px;
+	list-style: none;
+	padding: 6px 10px;
+	white-space: nowrap;
+}
+
+.filter-menu > summary::-webkit-details-marker {
+	display: none;
+}
+
+.filter-menu > summary::after {
+	color: var(--muted);
+	content: "\25BE";
+	font-size: 11px;
+}
+
+.filter-menu[open] > summary {
+	border-color: var(--accent);
+}
+
+.filter-menu-panel {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	box-shadow: 0 12px 30px rgba(0, 0, 0, .18);
+	display: grid;
+	gap: 2px;
+	max-width: 280px;
+	min-width: 200px;
+	padding: 8px;
+	position: absolute;
+	right: 0;
+	top: calc(100% + 6px);
+	z-index: 20;
+}
+
+.filter-menu-option {
+	align-items: flex-start;
+	border-radius: 6px;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	padding: 6px 8px;
+	text-align: left;
+}
+
+.filter-menu-option:hover {
+	background: var(--bg-subtle);
+}
+
+.filter-menu-option input {
+	flex: 0 0 auto;
+	margin: 2px 0 0;
+	/* Undo the global input { width: 100% } so the checkbox keeps its intrinsic
+	   size and the label gets the remaining width (otherwise the text is squeezed
+	   to ~1 char and wraps vertically). */
+	width: auto;
+}
+
+.filter-menu-option span {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}

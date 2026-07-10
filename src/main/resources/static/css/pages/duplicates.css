@@ -1,0 +1,620 @@
+.fingerprint-progress-bar {
+	background: var(--bg-subtle);
+	border-radius: 999px;
+	height: 18px;
+	margin: 14px 0;
+	overflow: hidden;
+	width: 100%;
+}
+
+.fingerprint-progress-fill {
+	background: var(--accent);
+	height: 100%;
+	transition: width 0.4s ease;
+}
+
+/* Deletion progress: full-width bar below the selection actions, shown only while moving. */
+.selection-bar .delete-progress-bar {
+	flex-basis: 100%;
+	margin: 8px 0 0;
+}
+
+.progress-text {
+	color: var(--muted);
+	font-size: 14px;
+	margin-bottom: 4px;
+}
+
+.fingerprint-failures-open {
+	margin-left: 6px;
+}
+
+.fingerprint-failures-dialog {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	color: var(--text);
+	max-width: 1100px;
+	padding: 0;
+	width: calc(100% - 32px);
+}
+
+.fingerprint-failures-dialog::backdrop {
+	background: rgba(0, 0, 0, .58);
+}
+
+.folder-mark-dialog {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	color: var(--text);
+	max-width: 560px;
+	padding: 0;
+	width: calc(100% - 32px);
+}
+
+.folder-mark-dialog::backdrop {
+	background: rgba(0, 0, 0, .58);
+}
+
+.folder-mark-header {
+	align-items: start;
+	border-bottom: 1px solid var(--line);
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+	padding: 18px 20px;
+}
+
+.folder-mark-header h2 {
+	font-size: 18px;
+	margin: 0 0 4px;
+}
+
+.folder-mark-header p {
+	margin: 0;
+}
+
+.folder-mark-path {
+	margin: 0;
+	overflow-wrap: anywhere;
+	padding: 12px 20px 0;
+}
+
+.folder-mark-options {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px 20px 20px;
+}
+
+.folder-mark-option {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 12px 14px;
+	text-align: left;
+	width: 100%;
+}
+
+.folder-mark-option:hover,
+.folder-mark-option:focus-visible {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+	outline: none;
+}
+
+/* The exclude-from-comparison option is a heavier, non-marking action, so it is
+   set apart from the four selection scopes above it. */
+.folder-mark-option-danger {
+	border-top: 2px solid var(--line);
+	margin-top: 4px;
+}
+
+.folder-mark-option-danger:hover,
+.folder-mark-option-danger:focus-visible {
+	background: var(--danger-soft, var(--accent-soft));
+	border-color: var(--danger, var(--accent));
+}
+
+.folder-mark-option-title {
+	color: var(--text);
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.folder-mark-option-desc {
+	color: var(--muted);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.folder-mark-default {
+	font-size: 10px;
+	margin-left: 6px;
+	padding: 1px 6px;
+	vertical-align: middle;
+}
+
+.error-text {
+	color: var(--danger);
+}
+
+.delete-confirm-dialog {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	color: var(--text);
+	max-width: 480px;
+	padding: 20px;
+	width: calc(100% - 32px);
+}
+
+.delete-confirm-dialog::backdrop {
+	background: rgba(0, 0, 0, .58);
+}
+
+.delete-confirm-header h2 {
+	font-size: 18px;
+	margin: 0 0 10px;
+}
+
+.delete-confirm-actions {
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+	margin-top: 18px;
+}
+
+.fingerprint-failures-header {
+	align-items: start;
+	border-bottom: 1px solid var(--line);
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+	padding: 18px 20px;
+}
+
+.fingerprint-failures-header h2,
+.fingerprint-failures-header p {
+	margin: 0;
+}
+
+#fingerprintFailuresStatus {
+	padding: 0 20px 18px;
+}
+
+.fingerprint-failures-table-wrap {
+	max-height: min(65vh, 650px);
+	overflow: auto;
+}
+
+.fingerprint-failures-table {
+	min-width: 760px;
+}
+
+.fingerprint-failures-table th {
+	background: var(--panel);
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.fingerprint-failures-table th:first-child,
+.fingerprint-failures-table td:first-child {
+	font-family: Consolas, monospace;
+	overflow-wrap: anywhere;
+	width: 55%;
+}
+
+.fingerprint-failures-table td:last-child {
+	overflow-wrap: anywhere;
+}
+
+.duplicate-group-header {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.duplicate-group-header .select-group {
+	align-items: center;
+	color: var(--muted);
+	display: flex;
+	font-size: 13px;
+	gap: 6px;
+	margin-left: auto;
+}
+
+.duplicate-group-header .select-group input {
+	width: auto;
+}
+
+.keep-row {
+	background: var(--bg-subtle);
+}
+
+/* Each duplicate group renders its own table. A fixed shared column grid prevents the browser
+ * from shifting columns according to the longest badge, file name or path in each group. */
+.duplicate-details-table {
+	min-width: 1180px;
+	table-layout: fixed;
+}
+
+.duplicate-details-table .duplicate-selection-column {
+	width: 200px;
+}
+
+.duplicate-details-table .duplicate-file-column {
+	width: 21%;
+}
+
+.duplicate-details-table .duplicate-size-column {
+	width: 115px;
+}
+
+.duplicate-details-table .duplicate-resolution-column {
+	width: 140px;
+}
+
+.duplicate-details-table .duplicate-date-column {
+	width: 250px;
+}
+
+.duplicate-details-table .duplicate-modified-column {
+	width: 220px;
+}
+
+.duplicate-date-cell {
+	align-items: center;
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.duplicate-date-cell .badge {
+	font-size: 10px;
+	padding: 1px 6px;
+}
+
+.duplicate-details-table td {
+	vertical-align: middle;
+}
+
+.duplicate-details-table th:nth-child(2),
+.duplicate-details-table th:nth-child(3),
+.duplicate-details-table td:nth-child(2),
+.duplicate-details-table td:nth-child(3) {
+	overflow: hidden;
+}
+
+.duplicate-details-table td:nth-child(2) .media-preview-link,
+.duplicate-details-table td:nth-child(2) > span {
+	align-items: center;
+	display: flex;
+	max-width: 100%;
+	min-width: 0;
+	width: 100%;
+}
+
+.duplicate-details-table td:nth-child(2) .media-preview-link > span,
+.duplicate-details-table td:nth-child(2) > span > span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.duplicate-details-table td:nth-child(2) .details-thumb {
+	flex: 0 0 34px;
+}
+
+.duplicate-details-table th:first-child,
+.duplicate-details-table td:first-child {
+	text-align: center;
+}
+
+.duplicate-selection-cell,
+.duplicate-folder-cell {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+}
+
+.duplicate-selection-cell {
+	justify-content: center;
+}
+
+.duplicate-selection-cell input {
+	flex: 0 0 auto;
+	width: auto;
+}
+
+.duplicate-selection-cell .badge {
+	box-sizing: border-box;
+	flex: 0 0 auto;
+	text-align: center;
+	white-space: nowrap;
+	width: 112px;
+}
+
+.duplicate-folder-path {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Compact "hide from comparison" button next to each file's checkbox. */
+.js-exclude-file {
+	align-items: center;
+	background: transparent;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--muted);
+	cursor: pointer;
+	display: inline-flex;
+	flex: 0 0 auto;
+	font-size: 13px;
+	height: 26px;
+	justify-content: center;
+	padding: 0;
+	width: 26px;
+}
+
+.js-exclude-file:hover {
+	background: var(--accent-soft);
+	color: var(--text);
+}
+
+.js-exclude-file:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.duplicate-folder-cell button {
+	flex: 0 0 auto;
+	font-size: 11px;
+	padding: 6px 9px;
+}
+
+.duplicate-details-table th:nth-child(4),
+.duplicate-details-table th:nth-child(5),
+.duplicate-details-table th:nth-child(6),
+.duplicate-details-table td:nth-child(4),
+.duplicate-details-table td:nth-child(5),
+.duplicate-details-table td:nth-child(6) {
+	white-space: nowrap;
+}
+
+.selection-bar {
+	align-items: center;
+	bottom: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	justify-content: space-between;
+	position: sticky;
+}
+
+.selection-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+#deletePreviewList {
+	margin: 0;
+	padding-left: 20px;
+}
+
+#deletePreviewList li {
+	font-family: monospace;
+	font-size: 13px;
+	padding: 2px 0;
+}
+
+/*
+ * View-mode switch (details/small/large/xlarge) and icon-grid tiles, mirroring the Arquivos
+ * explorer (see files.css). Kept as a separate copy rather than sharing the stylesheet, since
+ * fragments/head.html only links one page-specific stylesheet at a time and these two pages
+ * otherwise have little in common (no breadcrumb/drive-picker/lightbox here).
+ */
+.explorer-nav {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: flex-end;
+	padding: 10px 12px;
+}
+
+.explorer-view-switch {
+	align-items: center;
+	display: flex;
+	flex-shrink: 0;
+	gap: 6px;
+}
+
+.explorer-view-switch a {
+	align-items: center;
+	background: var(--accent-soft);
+	border-radius: 6px;
+	color: var(--accent-strong);
+	display: inline-flex;
+	font-size: 16px;
+	height: 38px;
+	justify-content: center;
+	text-decoration: none;
+	width: 38px;
+}
+
+.explorer-view-switch a.active {
+	background: var(--accent);
+	color: #fff;
+}
+
+/* Match the 38px view-switch buttons so the page-size select and the "Tipo" filter
+   sit on the same line instead of riding higher (they had no explicit height). */
+.explorer-size {
+	flex-shrink: 0;
+}
+
+.explorer-size select {
+	height: 38px;
+	padding: 0 8px;
+	width: auto;
+}
+
+.duplicates-type-filter > summary {
+	height: 38px;
+}
+
+.file-symbol {
+	color: #0369a1;
+	display: inline-block;
+	font-size: 28px;
+	line-height: 1;
+	margin-right: 8px;
+	vertical-align: middle;
+}
+
+.file-symbol.pdf { color: #b91c1c; }
+.file-symbol.word { color: #1d4ed8; }
+.file-symbol.excel { color: #15803d; }
+.file-symbol.powerpoint { color: #c2410c; }
+.file-symbol.archive { color: #a16207; }
+.file-symbol.audio { color: #7e22ce; }
+.file-symbol.video { color: #4338ca; }
+.file-symbol.image { color: #0f766e; }
+.file-symbol.text,
+.file-symbol.generic { color: #475569; }
+
+.file-thumb {
+	aspect-ratio: 1;
+	background: var(--bg-subtle);
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	display: block;
+	margin: 0 auto 10px;
+	object-fit: cover;
+	width: 72px;
+}
+
+.details-thumb {
+	display: inline-block;
+	height: 34px;
+	margin: 0 8px 0 0;
+	vertical-align: middle;
+	width: 34px;
+}
+
+.media-preview-link {
+	align-items: center;
+	color: inherit;
+	display: inline-flex;
+	min-width: 0;
+	text-decoration: none;
+}
+
+.media-preview-link:hover {
+	color: var(--accent-strong);
+}
+
+.explorer-tile .media-preview-link {
+	display: flex;
+	flex-direction: column;
+}
+
+.explorer-icons {
+	display: grid;
+	gap: 12px;
+}
+
+.explorer-icons.small {
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.explorer-icons.small .file-thumb {
+	width: 48px;
+}
+
+.explorer-icons.large {
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.explorer-icons.large .file-thumb {
+	width: 96px;
+}
+
+.explorer-icons.large .file-symbol {
+	font-size: 54px;
+}
+
+.explorer-icons.xlarge {
+	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.explorer-icons.xlarge .file-thumb {
+	border-radius: 10px;
+	width: 150px;
+}
+
+.explorer-icons.xlarge .file-symbol {
+	font-size: 84px;
+}
+
+.explorer-tile {
+	align-items: center;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-height: 112px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	padding: 12px;
+	position: relative;
+	text-align: center;
+}
+
+.explorer-tile:hover {
+	background: var(--bg-subtle);
+}
+
+.explorer-tile.keep {
+	background: var(--bg-subtle);
+	border-color: var(--ok);
+}
+
+.explorer-tile .file-symbol {
+	display: block;
+	margin: 0 auto 10px;
+}
+
+.tile-checkbox {
+	left: 8px;
+	position: absolute;
+	top: 8px;
+	width: auto;
+}
+
+.tile-badge {
+	position: absolute;
+	right: 8px;
+	top: 8px;
+}
+
+/* On the icon grid the exclude button sits at the bottom-left, clear of the
+   top checkbox/badge and of the file name below. */
+.tile-exclude {
+	bottom: 8px;
+	left: 8px;
+	position: absolute;
+}

@@ -1,0 +1,85 @@
+package br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.web;
+
+import java.util.Set;
+
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import br.com.jorgemelo.nimbusfilemanager.execution.application.ExecutionQueryService;
+import br.com.jorgemelo.nimbusfilemanager.execution.application.dto.ExecutionResponse;
+import br.com.jorgemelo.nimbusfilemanager.settings.application.AppSettingService;
+import br.com.jorgemelo.nimbusfilemanager.settings.application.constants.SettingsConstants;
+import br.com.jorgemelo.nimbusfilemanager.statistics.application.StatisticsService;
+import jakarta.servlet.http.HttpServletResponse;
+
+@Controller
+public class DashboardWebController {
+
+	/**
+	 * Rows per page of the "Execucoes" table on the Dashboard - same size the old
+	 * standalone Execucoes screen showed at once, before it was folded into this
+	 * page.
+	 */
+	private static final int EXECUTIONS_PAGE_SIZE = 20;
+
+	/**
+	 * Statuses an execution can still be in while its background thread is running.
+	 * Mirrors ExecutionWebController's own copy of this set for its
+	 * "/app/executions/{id}" redirect - kept separate rather than shared since the
+	 * two controllers use it for unrelated purposes (driving data-refresh-ms here
+	 * vs. redirecting to the live progress screen there).
+	 */
+	private static final Set<String> IN_PROGRESS_STATUSES = Set.of("STARTED", "SCANNING_FILES", "PROCESSING_FILES");
+
+	private final ExecutionQueryService executionQueryService;
+	private final StatisticsService statisticsService;
+	private final AppSettingService appSettingService;
+
+	public DashboardWebController(ExecutionQueryService executionQueryService, StatisticsService statisticsService,
+			AppSettingService appSettingService) {
+		this.executionQueryService = executionQueryService;
+		this.statisticsService = statisticsService;
+		this.appSettingService = appSettingService;
+	}
+
+	@GetMapping("/app")
+	public String dashboard(Model model) {
+		if (appSettingService.stringValue(SettingsConstants.WATCH_FOLDER, "").isBlank()) {
+			return "redirect:/app/onboarding";
+		}
+
+		Page<ExecutionResponse> executionsPage = executionQueryService.page(0, EXECUTIONS_PAGE_SIZE);
+
+		model.addAttribute("summary", statisticsService.summary());
+		model.addAttribute("executionsPage", executionsPage);
+		model.addAttribute("hasRunningExecutions", hasRunningExecutions(executionsPage));
+
+		return "app/dashboard";
+	}
+
+	/**
+	 * Returns just the next page of execution rows, rendered as an HTML fragment
+	 * (no page shell), so dashboard.js can append it to the table for infinite
+	 * scroll instead of the fixed top-20 snapshot the merged-in Execucoes screen
+	 * used to show. Mirrors how FileExplorerWebController's "/app/files/items"
+	 * backs Arquivos' own infinite scroll.
+	 */
+	@GetMapping("/app/executions/items")
+	public String executionItems(@RequestParam(defaultValue = "0") Integer page, HttpServletResponse response,
+			Model model) {
+		Page<ExecutionResponse> executionsPage = executionQueryService.page(page, EXECUTIONS_PAGE_SIZE);
+
+		model.addAttribute("executionsPage", executionsPage);
+		response.setHeader("X-Has-Next", Boolean.toString(executionsPage.hasNext()));
+
+		return "app/dashboard :: rows";
+	}
+
+	private boolean hasRunningExecutions(Page<ExecutionResponse> executionsPage) {
+		return executionsPage.getContent().stream()
+				.anyMatch(execution -> IN_PROGRESS_STATUSES.contains(execution.status()));
+	}
+}

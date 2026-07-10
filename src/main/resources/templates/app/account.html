@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{account.link}, 'account')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{account.link})}">
+<section>
+	<div class="panel">
+		<div class="grid two">
+			<div><div class="metric" th:text="#{common.email}">E-mail</div><div class="value" th:text="${user.username}">admin@nimbus-file-manager.local</div></div>
+			<div><div class="metric" th:text="#{users.twoFactor}">2FA</div><div class="value" th:text="${user.twoFactorEnabled} ? #{users.enabled} : #{users.disabled}">Inativo</div></div>
+		</div>
+	</div>
+	<div class="panel section">
+		<h2 th:text="#{account.password}">Senha</h2>
+		<div class="alert error" th:if="${param.passwordChangeRequired != null}" th:text="#{account.passwordChangeRequired}">Troque a senha padrão antes de continuar.</div>
+		<div class="alert ok" th:if="${passwordChanged}" th:text="#{account.passwordChanged}">Senha alterada.</div>
+		<div class="alert error" th:if="${passwordError}" th:text="${passwordError}">Erro.</div>
+		<form th:action="@{/app/account/password}" method="post">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+			<div class="form-grid">
+				<label th:unless="${user.passwordChangeRequired}"><span th:text="#{changePassword.currentPassword}">Senha atual</span>
+					<input name="currentPassword" type="password" autocomplete="current-password" required>
+				</label>
+				<label><span th:text="#{changePassword.newPassword}">Nova senha</span>
+					<input name="newPassword" type="password" autocomplete="new-password" required>
+				</label>
+				<label><span th:text="#{changePassword.confirmNewPassword}">Confirmar nova senha</span>
+					<input name="confirmPassword" type="password" autocomplete="new-password" required>
+				</label>
+			</div>
+			<div class="actions">
+				<button type="submit" th:text="#{account.changePassword}">Alterar senha</button>
+			</div>
+		</form>
+	</div>
+	<div class="panel section">
+		<h2 th:text="#{users.twoFactor}">2FA</h2>
+		<div class="alert ok" th:if="${twoFactorEnabled}" th:text="#{account.twoFactor.enabled}">2FA ativado.</div>
+		<div class="alert ok" th:if="${twoFactorDisabled}" th:text="#{account.twoFactor.disabled}">2FA desativado.</div>
+		<div class="alert error" th:if="${twoFactorError}" th:text="#{twoFactor.error}">Código inválido.</div>
+		<form th:if="${user.twoFactorSecret == null}" th:action="@{/app/account/2fa/prepare}" method="post">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+			<button type="submit" th:text="#{account.generateSecret}">Gerar segredo</button>
+		</form>
+		<div th:if="${user.twoFactorSecret != null}">
+			<div class="two-factor-setup">
+				<img class="qr-code" th:src="@{/app/account/2fa/qrcode}" th:alt="#{account.qrAlt}" alt="QR Code 2FA">
+				<div>
+					<p class="muted" th:text="#{account.scanQr}">Escaneie o QR Code no aplicativo autenticador.</p>
+					<p class="path" th:text="${user.twoFactorSecret}">SECRET</p>
+					<p class="path" th:text="${otpUri}">otpauth://</p>
+				</div>
+			</div>
+			<form th:if="${!user.twoFactorEnabled}" th:action="@{/app/account/2fa/enable}" method="post">
+				<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+				<label><span th:text="#{twoFactor.code}">Codigo</span>
+					<input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+				</label>
+				<div class="actions"><button type="submit" th:text="#{account.enable2fa}">Ativar</button></div>
+			</form>
+			<form th:if="${user.twoFactorEnabled}" th:action="@{/app/account/2fa/disable}" method="post">
+				<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+				<button type="submit" th:attr="data-confirm=#{account.disable2faConfirm}" th:text="#{account.disable2fa}">Desativar</button>
+			</form>
+		</div>
+	</div>
+</section>
+</div>
+</body>
+</html>

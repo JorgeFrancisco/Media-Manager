@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{duplicates.title}, 'duplicates')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{duplicates.title})}">
+<section class="stack">
+	<!-- Whole screen blocked while an inventory runs: results would be partial and this
+	     screen previews/executes deletions, so acting on them could delete the wrong file. -->
+	<section class="panel section" id="duplicatesInventoryProgress" th:if="${inventoryActive}" role="status"
+			data-refresh-ms="4000">
+		<h2 th:text="#{duplicates.inventory.running}">Inventário em andamento</h2>
+		<p class="muted" th:text="#{duplicates.inventory.running.description}">Os duplicados ficam indisponíveis até o inventário terminar. Enquanto ele roda, os resultados seriam parciais — e como esta tela permite pré-visualizar (e em breve executar) exclusões, agir sobre eles poderia apagar o arquivo errado. Este painel se atualiza sozinho.</p>
+		<progress></progress>
+	</section>
+
+	<th:block th:unless="${inventoryActive}">
+	<nav class="tab-strip">
+		<a th:href="@{/app/duplicates(tab='exact', view=${view})}" th:classappend="${activeTab == 'exact'} ? 'active'" th:text="#{duplicates.tab.exact}">Exatos</a>
+		<a th:href="@{/app/duplicates(tab='similar', minSimilarity=${minSimilarity}, view=${view})}" th:classappend="${activeTab == 'similar'} ? 'active'" th:text="#{duplicates.tab.similar}">Fotos semelhantes</a>
+	</nav>
+
+	<p class="muted" th:if="${activeTab == 'exact'}" th:text="#{duplicates.exact.description}">
+		Arquivos com o mesmo conteúdo (mesmo SHA-256). O arquivo mais antigo de cada grupo é sugerido para manter.
+	</p>
+	<p class="muted" th:if="${activeTab == 'similar'}" th:text="#{duplicates.similar.description}">
+		Fotos visualmente parecidas (não necessariamente idênticas), localizadas por pHash de 256 bits e confirmadas por SSIM. A exclusão de
+		verdade ainda não foi implementada - marque abaixo apenas para ver como ficaria a seleção.
+	</p>
+	<form th:if="${activeTab == 'similar'}" th:action="@{/app/duplicates/phash/rebuild}" method="post"
+			onsubmit="return confirm(this.dataset.confirm);" th:data-confirm="#{duplicates.rebuild.confirm}">
+		<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+		<button type="submit" class="secondary small" th:disabled="${!phashRebuildAvailable}" th:text="#{duplicates.rebuild}">Recalcular semelhança</button>
+		<span class="muted" th:text="#{duplicates.rebuild.description}">Recalcula apenas pHash/SSIM; não executa inventário, metadados ou SHA-256.</span>
+	</form>
+
+	<th:block th:unless="${phashBlocking}">
+	<div class="alert" th:if="${activeTab == 'similar' and phashFailed > 0}" role="status">
+		<span th:text="#{duplicates.fingerprint.failed(${phashFailed})}">0 foto(s) não puderam ter impressão digital gerada.</span>
+		<button type="button" class="secondary small fingerprint-failures-open" th:text="#{duplicates.viewFiles}">Ver arquivos</button>
+		<form th:action="@{/app/duplicates/phash/retry}" method="post" style="display:inline">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+			<button type="submit" class="secondary small" th:text="#{duplicates.retry}">Tentar novamente</button>
+		</form>
+	</div>
+
+	<form class="panel inline-form" th:if="${activeTab == 'similar'}" th:action="@{/app/duplicates}" method="get">
+		<input type="hidden" name="tab" value="similar">
+		<input type="hidden" name="view" th:value="${view}">
+		<label><span th:text="#{duplicates.minimumSimilarity}">Semelhança mínima</span>
+			<select name="minSimilarity" onchange="this.form.submit()">
+				<option th:each="option : ${similarityOptions}" th:value="${option}" th:text="|${option}%|"
+						th:selected="${option == minSimilarity}">70%</option>
+			</select>
+		</label>
+		<span class="muted" th:text="#{duplicates.minimumSimilarity.description(${minSimilarityFloor})}">Percentual SSIM mínimo de 70%.</span>
+	</form>
+
+	<div class="panel explorer-nav">
+		<div class="explorer-view-switch">
+			<a th:classappend="${view == 'details'} ? 'active'" title="Detalhes" th:title="#{view.details}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view='details')}"><i class="bi bi-list-ul"></i></a>
+			<a th:classappend="${view == 'small'} ? 'active'" title="Pequeno" th:title="#{view.small}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view='small')}"><i class="bi bi-grid-3x3-gap"></i></a>
+			<a th:classappend="${view == 'large'} ? 'active'" title="Grande" th:title="#{view.large}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view='large')}"><i class="bi bi-grid"></i></a>
+			<a th:classappend="${view == 'xlarge'} ? 'active'" title="Super grande" th:title="#{view.xlarge}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view='xlarge')}"><i class="bi bi-square"></i></a>
+				<form class="explorer-size" th:action="@{/app/duplicates}" method="get">
+					<input type="hidden" name="tab" th:value="${activeTab}">
+					<input type="hidden" name="view" th:value="${view}">
+					<input type="hidden" name="minSimilarity" th:value="${minSimilarity}">
+					<select name="size" onchange="this.form.submit()" title="Itens por página" th:title="#{files.itemsPerPage}">
+						<option th:each="option : ${pageSizes}" th:value="${option}" th:text="#{files.itemsOption(${option})}"
+								th:selected="${option == pageSize}">50 itens</option>
+					</select>
+				</form>
+				<details th:if="${activeTab == 'exact'}" class="filter-menu duplicates-type-filter">
+					<summary><span th:text="#{duplicates.type}">Tipo</span></summary>
+					<form class="filter-menu-panel" th:action="@{/app/duplicates}" method="get">
+						<input type="hidden" name="tab" th:value="${activeTab}">
+						<label class="filter-menu-option" th:each="option : ${typeFilterOptions}">
+							<input type="checkbox" class="js-duplicates-type" name="types" th:value="${option.name()}"
+									th:checked="${selectedTypeFilters.contains(option.name())}">
+							<span th:text="${#messages.msg('duplicates.type.' + option.name())}">Fotos</span>
+						</label>
+					</form>
+				</details>
+		</div>
+	</div>
+
+	<!-- Similar grouping runs in the background: this panel shows progress and polls until the
+	     compute finishes, at which point the region disappears from the fresh HTML and app.js falls
+	     back to a full reload that renders the groups. The page is never blocked while it computes. -->
+	<section class="panel section fingerprint-progress" id="similarityProgressRegion"
+			th:if="${similarityComputing}" role="status" data-refresh-ms="3000">
+		<h2 th:text="#{duplicates.similarity.calculating}">Calculando fotos semelhantes…</h2>
+		<p class="muted" th:text="#{duplicates.similarity.calculating.description}">O agrupamento por semelhança roda em segundo plano para não travar a página. Este painel se atualiza automaticamente a cada 3 segundos e os grupos aparecem assim que o cálculo terminar.</p>
+		<p class="progress-text"><strong th:text="|${similarityPercent}%|">0%</strong></p>
+		<div class="fingerprint-progress-bar" role="progressbar" th:aria-label="#{duplicates.progress(${similarityPercent})}"
+				th:attr="aria-valuenow=${similarityPercent},aria-valuemin=0,aria-valuemax=100">
+			<div class="fingerprint-progress-fill" th:style="|width: ${similarityPercent}%|"></div>
+		</div>
+		<p th:if="${similarityTotal > 0}"><strong th:text="${similarityProcessed}">0</strong> <span th:text="#{duplicates.of}">de</span> <strong th:text="${similarityTotal}">0</strong> <span th:text="#{duplicates.photosCompared}">fotos comparadas</span></p>
+		<p th:unless="${similarityTotal > 0}" class="muted" th:text="#{duplicates.similarity.preparing}">Preparando a comparação…</p>
+	</section>
+
+	<div class="panel section" th:if="${groups.isEmpty() and !similarityComputing}">
+		<p th:if="${activeTab == 'exact'}" th:text="#{duplicates.empty.exact}">Nenhum arquivo duplicado encontrado.</p>
+		<p th:if="${activeTab == 'similar'}" th:text="#{duplicates.empty.similar}">Nenhum grupo de fotos semelhantes encontrado com esse nível de semelhança.</p>
+	</div>
+
+	<div class="panel section table-toolbar pagination-toolbar" th:if="${totalElements > 0}">
+		<span th:text="#{duplicates.groups(${totalElements})}">0 grupos</span>
+		<nav class="pagination" th:aria-label="#{pagination.label}">
+			<a class="button secondary small" th:if="${hasPrevious}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view=${view}, size=${pageSize}, page=0)}" th:text="#{pagination.first}">Primeira</a>
+			<span class="button secondary small disabled" th:unless="${hasPrevious}" th:text="#{pagination.first}">Primeira</span>
+			<a class="button secondary small" th:if="${hasPrevious}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view=${view}, size=${pageSize}, page=${pageNumber - 1})}" th:text="#{pagination.previous}">Anterior</a>
+			<span class="button secondary small disabled" th:unless="${hasPrevious}" th:text="#{pagination.previous}">Anterior</span>
+			<span class="pagination-page" th:text="#{pagination.pageInfo(${pageNumber + 1}, ${totalPages})}">Página 1 de 1</span>
+			<a class="button secondary small" th:if="${hasNext}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view=${view}, size=${pageSize}, page=${pageNumber + 1})}" th:text="#{pagination.next}">Próxima</a>
+			<span class="button secondary small disabled" th:unless="${hasNext}" th:text="#{pagination.next}">Próxima</span>
+			<a class="button secondary small" th:if="${hasNext}"
+					th:href="@{/app/duplicates(tab=${activeTab}, minSimilarity=${minSimilarity}, view=${view}, size=${pageSize}, page=${totalPages - 1})}" th:text="#{pagination.last}">Última</a>
+			<span class="button secondary small disabled" th:unless="${hasNext}" th:text="#{pagination.last}">Última</span>
+		</nav>
+	</div>
+
+	<div class="panel section duplicate-group" th:each="group : ${groups}">
+		<div class="duplicate-group-header">
+			<strong th:text="${group.headerText()}">2 arquivos idênticos</strong>
+			<span class="badge warn" th:text="${group.badgeText()}">0 B recuperáveis</span>
+			<label class="select-group">
+				<input type="checkbox" class="js-select-group" th:attr="data-group=${group.groupId()}">
+				<span th:text="#{duplicates.group.selectCandidates}">Selecionar candidatos deste grupo</span>
+			</label>
+		</div>
+
+		<!-- Details view: table, one row per file. -->
+		<div class="table-wrap" th:if="${view == 'details'}">
+			<table class="table duplicate-details-table">
+				<colgroup>
+					<col class="duplicate-selection-column">
+					<col class="duplicate-file-column">
+					<col class="duplicate-folder-column">
+					<col class="duplicate-size-column">
+					<col class="duplicate-resolution-column">
+					<col class="duplicate-date-column">
+						<col class="duplicate-modified-column">
+				</colgroup>
+				<thead><tr><th></th><th th:text="#{quarantine.col.file}">Arquivo</th><th th:text="#{duplicates.folder}">Pasta</th><th th:text="#{common.size}">Tamanho</th><th th:text="#{duplicates.resolution}">Resolução</th><th th:text="#{common.date}">Data</th><th th:text="#{files.modified}">Modificado</th></tr></thead>
+				<tbody>
+				<tr th:each="file : ${group.files()}" th:classappend="${file.keep()} ? 'keep-row'">
+					<td>
+						<div class="duplicate-selection-cell">
+							<span class="badge" th:with="h=${file.highlight()}" th:title="${file.reason()}"
+									th:classappend="${h == 'ORIGINAL' or h == 'BEST_IN_GROUP'} ? 'ok' : (${h == 'REVIEW_NO_CLEAR_ORIGINAL'} ? 'warn' : 'muted')"
+									th:text="${h == 'ORIGINAL'} ? #{duplicates.highlight.original} : (${h == 'BEST_IN_GROUP'} ? #{duplicates.highlight.keep} : (${h == 'WHATSAPP_COPY'} ? #{duplicates.highlight.whatsapp} : (${h == 'EDITED_COPY'} ? #{duplicates.highlight.edited} : (${h == 'DERIVATIVE'} ? #{duplicates.highlight.derivative} : (${h == 'IDENTICAL_COPY'} ? #{duplicates.highlight.copy} : #{duplicates.highlight.review})))))">Badge</span>
+							<input type="checkbox" class="js-delete-checkbox"
+									th:title="${file.keep()} ? #{duplicates.select.recommendedKeep} : #{duplicates.select.delete}"
+									th:attr="data-group=${group.groupId()},data-file-id=${file.id()},data-size-bytes=${file.size().bytes()},data-path=${file.currentPath()},data-folder=${file.currentFolder()},data-recommended-keep=${file.recommendedKeep()}">
+							<button type="button" class="icon-button small js-exclude-file"
+									th:attr="data-file-id=${file.id()},data-name=${file.fileName()}"
+									th:title="#{duplicates.exclude.file.title}">
+								<i class="bi bi-eye-slash" aria-hidden="true"></i>
+							</button>
+						</div>
+					</td>
+					<td>
+						<a th:if="${file.image() or file.video()}" href="#" class="media-preview-link"
+								th:classappend="${file.video()} ? 'js-lightbox-video' : 'js-lightbox-image'"
+								th:attr="data-public-id=${file.id()},data-name=${file.fileName()}"
+								th:title="${file.video()} ? #{duplicates.open.video} : #{duplicates.open.image}">
+							<img class="details-thumb js-thumb" th:src="${file.previewUrl()}"
+									th:attr="data-icon-class=${file.iconClass()},data-icon-label=${file.iconLabel()}"
+									loading="lazy" decoding="async" fetchpriority="low" alt="">
+							<span th:text="${file.fileName()}">arquivo.jpg</span>
+						</a>
+						<a th:if="${!file.image() and !file.video() and file.previewable()}" href="#" class="media-preview-link"
+								th:classappend="${file.lightboxClass()}" th:data-url="${file.contentUrl()}" th:title="${file.openTitle()}">
+							<i class="file-symbol details-thumb bi" th:classappend="${file.iconClass()}" th:title="${file.iconLabel()}"></i>
+							<span th:text="${file.fileName()}">arquivo.pdf</span>
+						</a>
+						<span th:unless="${file.previewable()}">
+							<i class="file-symbol details-thumb bi" th:classappend="${file.iconClass()}" th:title="${file.iconLabel()}"></i>
+							<span th:text="${file.fileName()}">arquivo</span>
+						</span>
+					</td>
+					<td>
+						<div class="duplicate-folder-cell">
+							<span class="path duplicate-folder-path" th:text="${file.currentFolder()}">pasta</span>
+							<button type="button" class="secondary small js-select-folder"
+									th:attr="data-folder=${file.currentFolder()},data-group=${group.groupId()}"
+									title="Abrir ações desta pasta" th:title="#{duplicates.folder.options.title}">
+								<span th:text="#{duplicates.folder.actions}">Ações desta pasta</span>
+							</button>
+						</div>
+					</td>
+					<td th:text="${file.size().formatted()}">0 B</td>
+					<td th:text="${file.resolution()} ?: '—'">—</td>
+					<td>
+							<div class="duplicate-date-cell">
+								<span th:text="${file.captureDate() != null ? T(br.com.jorgemelo.nimbusfilemanager.common.util.DateTimeFormatUtils).human(file.captureDate()) : '—'}">-</span>
+								<span class="badge" th:classappend="${file.dateSourceBadgeClass()}" th:text="${file.dateSourceLabel()}"
+										title="Origem da data usada pelo sistema" th:title="#{duplicates.dateSource.title}">fonte</span>
+							</div>
+						</td>
+						<td th:text="${T(br.com.jorgemelo.nimbusfilemanager.common.util.DateTimeFormatUtils).human(file.modifiedAt())}">-</td>
+				</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<!-- Icon views: small/large/xlarge tile grid, mirrors the Arquivos explorer. -->
+		<div th:unless="${view == 'details'}" th:class="|explorer-icons ${view}|">
+			<div class="explorer-tile" th:each="file : ${group.files()}" th:classappend="${file.keep()} ? 'keep'">
+				<span class="badge tile-badge" th:with="h=${file.highlight()}" th:title="${file.reason()}"
+						th:classappend="${h == 'ORIGINAL' or h == 'BEST_IN_GROUP'} ? 'ok' : (${h == 'REVIEW_NO_CLEAR_ORIGINAL'} ? 'warn' : 'muted')"
+						th:text="${h == 'ORIGINAL'} ? '📷' : (${h == 'BEST_IN_GROUP'} ? '✅' : (${h == 'WHATSAPP_COPY'} ? '📱' : (${h == 'EDITED_COPY'} ? '🎨' : (${h == 'DERIVATIVE' or h == 'IDENTICAL_COPY'} ? '🗑' : '❓'))))">•</span>
+				<input type="checkbox" class="js-delete-checkbox tile-checkbox"
+						th:title="${file.keep()} ? #{duplicates.select.recommendedKeep} : #{duplicates.select.delete}"
+						th:attr="data-group=${group.groupId()},data-file-id=${file.id()},data-size-bytes=${file.size().bytes()},data-path=${file.currentPath()},data-folder=${file.currentFolder()},data-recommended-keep=${file.recommendedKeep()}">
+				<button type="button" class="icon-button small tile-exclude js-exclude-file"
+						th:attr="data-file-id=${file.id()},data-name=${file.fileName()}"
+						th:title="#{duplicates.exclude.file.title}">
+					<i class="bi bi-eye-slash" aria-hidden="true"></i>
+				</button>
+				<a th:if="${file.image() or file.video()}" href="#" class="media-preview-link"
+						th:classappend="${file.video()} ? 'js-lightbox-video' : 'js-lightbox-image'"
+						th:attr="data-public-id=${file.id()},data-name=${file.fileName()}"
+						th:title="${file.video()} ? #{duplicates.open.video} : #{duplicates.open.image}">
+					<img class="file-thumb js-thumb" th:src="${file.previewUrl()}"
+							th:attr="data-icon-class=${file.iconClass()},data-icon-label=${file.iconLabel()}"
+							loading="lazy" decoding="async" fetchpriority="low" alt="">
+					<span th:text="${file.fileName()}">arquivo.jpg</span>
+				</a>
+				<a th:if="${!file.image() and !file.video() and file.previewable()}" href="#" class="media-preview-link"
+						th:classappend="${file.lightboxClass()}" th:data-url="${file.contentUrl()}" th:title="${file.openTitle()}">
+					<i class="file-symbol bi" th:classappend="${file.iconClass()}" th:title="${file.iconLabel()}"></i>
+					<span th:text="${file.fileName()}">arquivo.pdf</span>
+				</a>
+				<div th:unless="${file.previewable()}">
+					<i class="file-symbol bi" th:classappend="${file.iconClass()}" th:title="${file.iconLabel()}"></i>
+					<span th:text="${file.fileName()}">arquivo</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel section selection-bar" id="selectionBar">
+		<span><strong id="selectionCount">0</strong> <span th:text="#{duplicates.selection.files}">arquivo(s) selecionado(s) -</span> <strong id="selectionSize">0 B</strong> <span class="muted" th:text="#{duplicates.selection.scope}">(nas páginas que você abriu)</span></span>
+		<div class="selection-actions">
+			<span id="deleteStatus" class="muted" role="status" hidden></span>
+			<button type="button" id="suggestSelectionButton" class="secondary"
+					title="Marca de novo os arquivos sugeridos para exclusão nesta página (os que não são 'Manter')" th:title="#{duplicates.selection.suggest.title}" th:text="#{duplicates.selection.suggest}">Sugerir seleção</button>
+			<button type="button" id="clearSelectionButton" class="secondary" disabled
+					title="Desmarca todos os arquivos selecionados, inclusive nas outras páginas já abertas" th:title="#{duplicates.selection.clear.title}" th:text="#{duplicates.selection.clear}">Limpar seleção</button>
+			<button type="button" id="previewDeleteButton" class="secondary" disabled th:text="#{duplicates.delete.preview.action}">Pré-visualizar exclusão</button>
+			<button type="button" id="confirmDeleteButton" class="button danger" disabled th:text="#{duplicates.delete.selected}">Excluir selecionados</button>
+		</div>
+		<div id="deleteProgressBar" class="fingerprint-progress-bar delete-progress-bar" role="progressbar"
+				aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden>
+			<div id="deleteProgressFill" class="fingerprint-progress-fill" style="width: 0%"></div>
+		</div>
+	</div>
+
+	<div class="panel section" id="deletePreviewPanel" hidden>
+		<h2 th:text="#{duplicates.delete.preview.title}">Pré-visualização da exclusão</h2>
+		<p class="muted" th:text="#{duplicates.delete.preview.description}">Os arquivos desta página serão movidos para a pasta de quarentena — saem da biblioteca, mas ficam guardados e podem ser restaurados (desfazer) até o expurgo. Nada é apagado do disco agora.</p>
+		<ul id="deletePreviewList"></ul>
+	</div>
+
+	<dialog id="deleteConfirmDialog" class="delete-confirm-dialog" aria-labelledby="deleteConfirmTitle">
+		<header class="delete-confirm-header">
+			<h2 id="deleteConfirmTitle" th:text="#{duplicates.delete.confirm.title}">Confirmar exclusão</h2>
+		</header>
+		<p><span th:text="#{duplicates.delete.confirm.before}">Mover</span> <strong id="deleteConfirmCount">0</strong> <span th:text="#{duplicates.delete.confirm.after}">arquivo(s) para a pasta de quarentena? Eles saem da biblioteca, mas ficam guardados e podem ser restaurados enquanto não forem expurgados.</span></p>
+		<div class="delete-confirm-actions">
+			<button type="button" class="secondary js-delete-cancel" th:text="#{action.cancel}">Cancelar</button>
+			<button type="button" class="button danger js-delete-confirm" th:text="#{duplicates.delete.moveToQuarantine}">Mover para a quarentena</button>
+		</div>
+	</dialog>
+	</th:block>
+
+	<!-- Whole-library progress stays below the screen content, matching the other jobs.
+	     Auto-refresh is limited to the blocked similar tab, so browsing exact duplicates
+	     is not interrupted. -->
+	<section class="panel section fingerprint-progress" id="fingerprintProgressRegion"
+			th:if="${phashPending > 0}" role="status"
+			th:attr="data-refresh-ms=${phashBlocking ? 4000 : null}">
+		<h2 th:text="#{duplicates.fingerprint.calculating}">Calculando impressões digitais das fotos…</h2>
+		<p class="muted"><span th:text="#{duplicates.fingerprint.calculating.description}">A comparação por semelhança fica disponível quando todas as fotos tiverem sua impressão digital.</span><span th:if="${phashBlocking}" th:text="#{duplicates.fingerprint.calculating.refresh}"> Este painel se atualiza automaticamente a cada 4 segundos.</span></p>
+		<p class="progress-text"><strong th:text="|${phashPercent}%|">0%</strong>
+			<span th:if="${phashEtaSeconds >= 60}" th:text="#{duplicates.eta.minutes(${phashEtaSeconds / 60})}">· tempo estimado</span>
+			<span th:if="${phashEtaSeconds >= 0 and phashEtaSeconds < 60}" th:text="#{duplicates.eta.lessThanMinute}">· menos de 1 min restante</span>
+			<span th:if="${phashEtaSeconds < 0 and phashRunning}" th:text="#{duplicates.eta.calculating}">· calculando tempo estimado…</span>
+		</p>
+		<div class="fingerprint-progress-bar" role="progressbar" th:aria-label="#{duplicates.progress(${phashPercent})}"
+				th:attr="aria-valuenow=${phashPercent},aria-valuemin=0,aria-valuemax=100">
+			<div class="fingerprint-progress-fill" th:style="|width: ${phashPercent}%|"></div>
+		</div>
+		<p><strong th:text="${phashDone}">0</strong> <span th:text="#{duplicates.of}">de</span> <strong th:text="${phashTotal}">0</strong> <span th:text="#{duplicates.completed}">concluídas</span>
+			· <span th:text="${phashPending}">0</span> <span th:text="#{duplicates.pending}">pendentes</span>
+			· <span th:text="${phashFailed}">0</span> <span th:text="#{duplicates.failures}">falhas</span>
+			<button th:if="${phashFailed > 0}" type="button" class="secondary small fingerprint-failures-open">
+				<span th:text="#{duplicates.viewFiles}">Ver arquivos</span>
+			</button>
+		</p>
+		<form th:if="${phashFailed > 0}" th:action="@{/app/duplicates/phash/retry}" method="post">
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+			<button type="submit" class="secondary" th:text="#{duplicates.retryFailures}">Tentar novamente as falhas</button>
+		</form>
+	</section>
+
+	<dialog id="fingerprintFailuresDialog" class="fingerprint-failures-dialog"
+			aria-labelledby="fingerprintFailuresTitle">
+		<header class="fingerprint-failures-header">
+			<div>
+				<h2 id="fingerprintFailuresTitle" th:text="#{duplicates.failures.title}">Falhas nas impressões digitais</h2>
+				<p class="muted" th:text="#{duplicates.failures.description}">Arquivos que esgotaram as tentativas de processamento.</p>
+			</div>
+			<button type="button" class="secondary small fingerprint-failures-close" th:text="#{duplicates.close}">Fechar</button>
+		</header>
+		<p id="fingerprintFailuresStatus" class="muted" th:text="#{duplicates.loading}">Carregando…</p>
+		<div id="fingerprintFailuresTableWrap" class="table-wrap fingerprint-failures-table-wrap" hidden>
+			<table class="table fingerprint-failures-table">
+				<thead><tr><th th:text="#{quarantine.col.file}">Arquivo</th><th th:text="#{common.error}">Erro</th></tr></thead>
+				<tbody id="fingerprintFailuresRows"></tbody>
+			</table>
+		</div>
+	</dialog>
+
+	<dialog id="folderMarkDialog" class="folder-mark-dialog" aria-labelledby="folderMarkTitle">
+		<header class="folder-mark-header">
+			<div>
+				<h2 id="folderMarkTitle" th:text="#{duplicates.folder.title}">Ações desta pasta</h2>
+				<p class="muted" th:text="#{duplicates.folder.description}">Escolha o alcance da marcação. O arquivo indicado por Sugerir seleção para manter nunca será marcado automaticamente, portanto um grupo inteiro não será selecionado.</p>
+			</div>
+			<button type="button" class="secondary small js-folder-mark-close" th:text="#{duplicates.close}">Fechar</button>
+		</header>
+		<p class="folder-mark-path"><span class="muted" th:text="#{duplicates.folder.label}">Pasta:</span> <span id="folderMarkPath" class="path">—</span></p>
+		<div class="folder-mark-options">
+			<button type="button" class="folder-mark-option js-folder-mark-apply" data-scope="group">
+				<span class="folder-mark-option-title"><span th:text="#{duplicates.folder.group.title}">Marcar só neste grupo</span> <span class="badge muted folder-mark-default" th:text="#{duplicates.folder.default}">padrão</span></span>
+				<span class="folder-mark-option-desc" th:text="#{duplicates.folder.group.description}">Marca os arquivos desta pasta apenas no grupo em que você clicou. Não altera os outros grupos nem o que já estava marcado neles.</span>
+			</button>
+			<button type="button" class="folder-mark-option js-folder-mark-apply" data-scope="all">
+				<span class="folder-mark-option-title" th:text="#{duplicates.folder.all.title}">Adicionar em todos os grupos</span>
+				<span class="folder-mark-option-desc" th:text="#{duplicates.folder.all.description}">Percorre a página inteira e marca os arquivos desta pasta em todos os grupos onde ela aparece, somando ao que você já tinha marcado.</span>
+			</button>
+			<button type="button" class="folder-mark-option js-folder-mark-apply" data-scope="replace">
+				<span class="folder-mark-option-title" th:text="#{duplicates.folder.replace.title}">Substituir toda a seleção</span>
+				<span class="folder-mark-option-desc" th:text="#{duplicates.folder.replace.description}">Limpa todas as marcações da página e deixa marcados somente os arquivos desta pasta (em todos os grupos). Use para recomeçar a seleção a partir desta pasta.</span>
+			</button>
+			<button type="button" class="folder-mark-option folder-mark-option-danger js-folder-exclude">
+					<span class="folder-mark-option-title" th:text="#{duplicates.folder.exclude.title}">Excluir esta pasta da comparacao</span>
+					<span class="folder-mark-option-desc" th:text="#{duplicates.folder.exclude.description}">Para de comparar todos os arquivos desta pasta e subpastas, agora e no futuro, nas abas Exatos e Semelhantes. Nada e apagado: os arquivos continuam no inventario e visiveis no resto do app. Voce pode reverter em Configuracoes.</span>
+				</button>
+				<button type="button" class="folder-mark-option js-folder-mark-apply" data-scope="clear">
+				<span class="folder-mark-option-title" th:text="#{duplicates.folder.clear.title}">Desmarcar esta pasta</span>
+				<span class="folder-mark-option-desc" th:text="#{duplicates.folder.clear.description}">Remove a marcação dos arquivos desta pasta em todos os grupos, sem tocar nas outras pastas. Bom para desfazer um clique errado.</span>
+			</button>
+		</div>
+	</dialog>
+	</th:block>
+</section>
+</div>
+<script th:src="@{/js/pages/duplicates.js}"></script>
+</body>
+</html>

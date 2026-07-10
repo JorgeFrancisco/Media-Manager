@@ -1,0 +1,126 @@
+.login-page {
+	align-items: center;
+	background:
+		radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 32%),
+		linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+	display: grid;
+	min-height: 100vh;
+	place-items: center;
+}
+
+.login-shell {
+	align-items: stretch;
+	display: grid;
+	grid-template-columns: minmax(360px, 420px) minmax(520px, 720px);
+	width: min(1120px, calc(100vw - 32px));
+}
+
+.login-panel {
+	background: #fff;
+	border: 1px solid var(--line);
+	border-radius: 8px 0 0 8px;
+	box-shadow: 0 24px 60px rgba(16, 24, 40, 0.14);
+	padding: 28px;
+	width: 100%;
+	z-index: 1;
+}
+
+.login-header {
+	align-items: center;
+	display: flex;
+	gap: 16px;
+	justify-content: space-between;
+}
+
+.login-panel > .muted {
+	margin: 10px 0 22px;
+}
+
+.btn-primary,
+.btn-google {
+	align-items: center;
+	display: flex;
+	justify-content: center;
+	margin-top: 20px;
+	min-height: 42px;
+	width: 100%;
+}
+
+.btn-google {
+	background: #fff;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--text);
+	font-weight: 700;
+	gap: 10px;
+	padding: 10px 14px;
+}
+
+.btn-google:hover {
+	background: #f8fafc;
+	border-color: #b8c2d1;
+}
+
+.btn-google.disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+.divider {
+	align-items: center;
+	color: var(--muted);
+	display: flex;
+	font-size: 12px;
+	gap: 12px;
+	margin-top: 18px;
+}
+
+.divider::before,
+.divider::after {
+	background: var(--line);
+	content: "";
+	flex: 1;
+	height: 1px;
+}
+
+.divider + .btn-google {
+	margin-top: 18px;
+}
+
+.login-links {
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	margin-top: 22px;
+}
+
+.login-links .dot {
+	color: var(--muted);
+}
+
+.login-art {
+	background-image: url("/img/nimbus-file-manager-login-hero-2x.png");
+	background-position: center;
+	background-size: cover;
+	border-radius: 0 8px 8px 0;
+	box-shadow: 0 24px 60px rgba(16, 24, 40, 0.14);
+	height: 100%;
+	min-height: 420px;
+	overflow: hidden;
+	width: 100%;
+}
+
+@media (max-width: 900px) {
+	.login-shell {
+		grid-template-columns: 1fr;
+	}
+
+	.login-panel {
+		border-radius: 8px 8px 0 0;
+	}
+
+	.login-art {
+		border-radius: 0 0 8px 8px;
+		min-height: 240px;
+	}
+}

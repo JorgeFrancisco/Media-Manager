@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	Reusable media card: renders a single file as a clickable thumbnail (or type icon) plus its name,
+	wired to the global lightbox (media-lightbox.js) via the js-lightbox-* classes. Thumbnails and
+	content come from /api/media/{publicId}/... by public id (data-public-id also enables the
+	lightbox's gallery navigation and details panel). Items must expose: name(),
+	image()/video()/pdf()/text()/audio(), previewUrl(), mediaPublicId(), iconClass(), iconLabelKey().
+	Used by the Quarentena screen; the Arquivos explorer can adopt it too. Directories are intentionally
+	out of scope here - callers render those themselves. thumbWidth sizes the requested thumbnail.
+-->
+<th:block th:fragment="card(item, thumbWidth)">
+	<a th:if="${item.image()}" href="javascript:void(0)" class="js-lightbox-image media-card-open"
+			th:data-url="${item.previewUrl()}" th:data-public-id="${item.mediaPublicId()}"
+			th:data-name="${item.name()}" title="Abrir imagem" th:title="#{duplicates.open.image}">
+		<img class="media-thumb" loading="lazy" decoding="async"
+				th:src="${item.mediaPublicId() != null ? '/api/media/' + item.mediaPublicId() + '/thumbnail?w=' + thumbWidth : item.previewUrl()}"
+				alt="">
+		<span class="media-card-name" th:text="${item.name()}">arquivo</span>
+	</a>
+	<a th:if="${item.video()}" href="javascript:void(0)" class="js-lightbox-video media-card-open"
+			th:data-url="${item.previewUrl()}" th:data-public-id="${item.mediaPublicId()}"
+			th:data-name="${item.name()}" title="Abrir vídeo" th:title="#{duplicates.open.video}">
+		<img th:if="${item.mediaPublicId() != null}" class="media-thumb" loading="lazy" decoding="async"
+				th:src="${'/api/media/' + item.mediaPublicId() + '/thumbnail?w=' + thumbWidth}" alt="">
+		<video th:unless="${item.mediaPublicId() != null}" class="media-thumb" th:src="${item.previewUrl()}" muted
+				preload="metadata"></video>
+		<span class="media-card-name" th:text="${item.name()}">arquivo</span>
+	</a>
+	<a th:if="${item.pdf()}" href="javascript:void(0)" class="js-lightbox-pdf media-card-open"
+			th:data-url="${item.previewUrl()}" th:data-name="${item.name()}" title="Abrir PDF" th:title="#{backend.file.openPdf}">
+		<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+		<span class="media-card-name" th:text="${item.name()}">arquivo</span>
+	</a>
+	<a th:if="${item.text()}" href="javascript:void(0)" class="js-lightbox-text media-card-open"
+			th:data-url="${item.previewUrl()}" th:data-name="${item.name()}" title="Abrir arquivo de texto" th:title="#{backend.file.openText}">
+		<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+		<span class="media-card-name" th:text="${item.name()}">arquivo</span>
+	</a>
+	<a th:if="${item.audio()}" href="javascript:void(0)" class="js-lightbox-audio media-card-open"
+			th:data-url="${item.previewUrl()}" th:data-name="${item.name()}" title="Reproduzir áudio" th:title="#{backend.file.playAudio}">
+		<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+		<span class="media-card-name" th:text="${item.name()}">arquivo</span>
+	</a>
+	<span class="media-card-open static"
+			th:unless="${item.image() || item.video() || item.pdf() || item.text() || item.audio()}">
+		<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+		<span class="media-card-name" th:text="${item.name()}">arquivo</span>
+	</span>
+</th:block>
+</body>
+</html>

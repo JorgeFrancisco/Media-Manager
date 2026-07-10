@@ -1,0 +1,323 @@
+# Regras de Código — Nimbus File Manager
+
+> **Documento de referência permanente do projeto.**
+
+Este documento define as políticas permanentes de desenvolvimento do Nimbus File Manager. Seu objetivo é manter consistência arquitetural, qualidade, previsibilidade e facilitar revisões humanas e por IA.
+
+Contém apenas regras **permanentes**, derivadas do código real e não de preferência pessoal. Informações que mudam com frequência (métricas, cobertura, versão, funcionalidades, stack) pertencem ao README, nunca a este documento.
+
+## Hierarquia dos documentos
+
+Em caso de conflito, prevalece nesta ordem:
+
+1. `editor/.editorconfig` — regras mecânicas de edição.
+2. Formatter do Eclipse (`Formatação Eclipse Java`) — formatação Java.
+3. Este documento — políticas permanentes de desenvolvimento.
+4. ADRs — decisões arquiteturais específicas, em `docs/adr/` (um arquivo por decisão, ex.: `docs/adr/0001-titulo.md`).
+5. README — estado atual do projeto (métricas, cobertura, funcionalidades, stack, requisitos).
+
+Uma **regra nova que conflite com o código atual** deve ser decidida explicitamente antes de entrar — ou o código se ajusta à regra, ou a regra registra a exceção.
+
+---
+
+# Princípios
+
+- Clareza antes de esperteza.
+- Código simples vence código complexo.
+- Segurança antes de performance; performance antes de micro-otimizações.
+- Testabilidade faz parte do design.
+- Evitar duplicação de lógica.
+- Comentários explicam o **porquê**; o código explica o **como**.
+- Toda regra nasce de um problema recorrente, derivada do código real — não de preferência pessoal.
+
+---
+
+# Estilo de código
+
+## Escopo
+
+As regras valem igualmente para **produção** (`src/main/java`) e **testes** (`src/test/java`). Formatação, espaçamento vertical, imports e nomes aplicam-se às classes de teste sem exceção.
+
+## Regras mecânicas (`editor/.editorconfig`)
+
+Os artefatos de configuração do editor vivem na pasta `editor/` (fora da raiz, como referência versionada): `editor/.editorconfig` (regras mecânicas, fonte canônica), `editor/FormatacaoEclipseJava.xml` (profile do formatter Java `Formatação Eclipse Java`, que substituiu o antigo `FormatacaoJorge`) e `editor/eclipsejava.importorder` (ordem de *Organize Imports*). Resumo do `editor/.editorconfig`:
+
+- Codificação UTF-8; fim de linha CRLF; **sem linha em branco no final do arquivo**; espaços à direita removidos (exceto em `.md`).
+- Indentação: **tab** em `java`, `xml`, `html`, `css`, `js`; **espaço** em `sql` (4), `json`/`yml`/`yaml` (2) e `md` (2).
+- Largura máxima de 120 colunas apenas em Java.
+
+"Sem linha em branco no final" refere-se ao **fim do arquivo**; linhas em branco **entre** blocos são parte do estilo (ver Espaçamento vertical).
+
+**Text blocks Java (`"""`):** as regras de espaços à direita e indentação **não se aplicam ao interior** de um text block. O conteúdo entre `"""` é significativo e regido pelas regras do próprio Java (whitespace incidental / `\s`), não pelo editor. Trim ou reindentação automática deve **preservar o interior — nunca reescrevê-lo**. São muito usados nas queries dos repositórios (`@Query("""…""")`), então um trim ingênuo linha a linha corromperia o SQL.
+
+## Formatter (`Formatação Eclipse Java`)
+
+A formatação mecânica do Java é responsabilidade **exclusiva** do profile do Eclipse `Formatação Eclipse Java` (Ctrl+Shift+F), consistente com o `editor/.editorconfig`. Especificidades úteis ao escrever:
+
+- Código em **120** colunas; comentários em **80**.
+- Continuação: linhas quebradas indentam **2 níveis** (tabs).
+- Chaves K&R: `{` no fim da linha; `} else {` e `} catch` na mesma linha do `}`.
+- No máximo **1** linha em branco consecutiva; **1** antes de cada método; **nenhuma** entre campos consecutivos; imports em grupos separados por 1 linha em branco.
+- O profile não insere linha ao final do arquivo (casa com o `editor/.editorconfig`).
+
+## Espaçamento vertical
+
+Não é expressável no `editor/.editorconfig` nem imposto de forma confiável por formatter/linter — é convenção do projeto, verificada em revisão:
+
+- Uma linha em branco **entre grupos de passos lógicos** dentro de um método. Statements fortemente relacionados (um mesmo passo) ficam **juntos**; a linha em branco separa um grupo do próximo.
+- Uma linha em branco **antes do `return`** quando há um passo anterior distinto; **não** quando o `return` conclui o mesmo grupo lógico.
+- **Ficam juntos** (sem linha em branco entre membros) apenas statements da **mesma família/tipo**: grupo de `when(...).thenReturn/thenAnswer`, grupo de `verify(...)`, grupo de `assertThat(...)`/`Assertions.*`, **declarações de variáveis do mesmo tipo** (ex.: dois `byte[]`, dois `PhotoPerceptualFingerprint`), ou **repetições da mesma operação** (ex.: dois `service.compute(file)`). **Entre grupos, uma linha em branco** — cada família/tipo/passo lógico distinto separa, **inclusive dentro do arrange** (criar o arquivo, montar o input e construir o serviço são passos separados, pois têm tipos/propósitos diferentes). Famílias diferentes de verificação também se separam entre si — ex.: um grupo de `assertThat(...)` e um grupo de `verify(...)` levam linha em branco entre eles.
+- As regras acima valem para **blocos normais** (corpo de método, `if`/`for`/`while`/`try`). **Pular** o interior de **lambdas**, **switch expressions** (`case X ->`) e **expressões multi-linha**: ali o statement faz parte de uma construção coesa.
+- Uma linha em branco **após a `{` que abre a classe**, antes do primeiro membro; **não** há linha em branco após a `{` que abre um método. Records e enums seguem a mesma regra quando têm corpo (inclusive enums que só listam constantes).
+- **Sem** linha em branco antes da `}` que fecha um método ou a classe.
+- Uma linha em branco **entre membros** (métodos, construtores, grupos de campos).
+- **Nunca** duas linhas em branco consecutivas.
+- Imports em grupos separados por uma linha em branco (estáticos primeiro), mantendo a ordenação gerada pelo Eclipse.
+
+## Convenções
+
+- Identificadores e comentários técnicos em **inglês**; documentação do projeto em **pt-BR**.
+- **Injeção de dependência por construtor** (`@Autowired` no construtor), campos `private final`.
+- **No máximo 7 parâmetros por método ou construtor** (regra Sonar S107). Ao ultrapassar esse limite, agrupar parâmetros de dados coesos em um *Parameter Object* (`record`/DTO) ou reavaliar a responsabilidade da classe/método. Para construtores de injeção de dependências, priorizar a divisão de responsabilidades da classe em vez de encapsular dependências em um objeto.
+- **Sem tipos aninhados.** `class`, `record`, `enum` e `interface` (funcionais ou não) são declarados em **arquivo próprio (top-level)**, nunca aninhados dentro de outra classe. Um *Parameter Object* extraído para resolver o item acima também nasce em arquivo próprio.
+- **Menor visibilidade possível.** Todo tipo, método, campo e construtor tem a **menor visibilidade que atende ao uso real**: usado só na própria classe → `private`; só no próprio pacote → package-private (sem modificador); `protected` só quando há herança real; `public` **apenas** quando há uso legítimo cross-package (ou exigência de framework/override — handlers `@GetMapping`/`@Bean`/`@Override`, acessores de `record`/`@Entity`, binding de `@ConfigurationProperties`, `@Test`). **Nunca ampliar visibilidade para acomodar um teste ou uma dependência mal-colocada** — co-localizar o teste no pacote do alvo (usando acesso package-private) ou corrigir a camada, em vez de tornar `public`. **Não alterar o modificador de acesso sem necessidade real:** ao mover/refatorar/renomear, **preservar a visibilidade original**; só mudar quando o uso legítimo de fato mudou, e nesse caso na direção de **restringir**, não ampliar. Um `public` que só é referenciado dentro do próprio pacote é débito a corrigir. **Exceção: constantes de dados** — ver regra abaixo.
+- **Constantes de dados numa classe `<Domínio>Constants`.** Constantes de dados (`static final` de `String`/numérico/`boolean` — chaves de preferência/setting, identificadores de página, limites, mensagens, nomes bem-conhecidos) **não** ficam inline na classe de comportamento (service, controller, componente, advice, helper). Cada domínio tem uma classe `<Domínio>Constants` (geral) num package `<domínio>/application/constants` (ex.: `organization/application/constants/OrganizationConstants`), simétrico ao `<domínio>/application/dto`, com **todas as constantes de contrato `public`**, referenciadas por `import static`. Um domínio **pode ter mais de um holder** nesse mesmo package `constants` quando as constantes formam um grupo coeso e auto-descritivo — ex.: `ExecutionMessages` (chaves de mensagem), `WorkspaceFolders` (nomes de pasta), `FingerprintAlgorithm` (ids de algoritmo), `UsnReason` (reason codes) — em vez de um grab-bag no `<Domínio>Constants`. **Todo holder de constantes mora em `<domínio>/application/constants`.** Exceção: constantes de **protocolo nativo** ligadas a glue de infraestrutura (ex.: `WindowsUsnConstants`/`WindowsRdcwConstants`, na FFM/kernel32) ficam co-localizadas com o código nativo em `infrastructure/**/windows`, não sobem para `application/constants`. Isso dá um lar único e previsível às constantes, evita que uma constante seja "tornada `public` por necessidade" dentro de um controller/service (o que gerava acoplamento cross-feature), e mantém as classes de comportamento focadas em comportamento. Um consumidor de outro domínio referencia `SettingsConstants.WATCH_FOLDER`, não a classe de comportamento dona. **Não são constantes de domínio** (e ficam onde estão): `LOGGER`/`serialVersionUID`; valores de binding de `@ConfigurationProperties`; constantes de `enum`/`record`/`@Entity`; e nomes de bean/`@Qualifier` de `@Configuration` (contrato do framework, no dono natural). Constantes transversais (usadas por infra do `shared`) vão para `shared/application/constants/SharedConstants`.
+- **Imports sempre organizados** antes de concluir a tarefa. Remover todos os imports não utilizados, adicionar os necessários e organizar os imports para produzir exatamente o mesmo resultado que o Eclipse (*Organize Imports* / Ctrl+Shift+O) geraria, respeitando a configuração do projeto em `editor/eclipsejava.importorder` (grupos `java`, `javax`, `org`, `com`, e por fim os demais — `br.com.*`, `jakarta.*`, `lombok.*`… — num único grupo alfabético; estáticos primeiro; grupos separados por uma linha em branco). Nunca deixar imports não usados nem utilizar ordenação diferente da gerada pelo Eclipse.
+- **Sem nomes totalmente qualificados inline:** referenciar tipos e membros estáticos pelo nome simples com `import` (ex.: `AtomicBoolean`, não `java.util.concurrent.atomic.AtomicBoolean`; `doThrow(...)` com `import static`, não `org.mockito.Mockito.doThrow(...)`).
+- **Nomes de teste** em camelCase descrevendo o comportamento verificado (ex.: `raisesWhenAKeyIsAbsentFromTheBaseBundle`).
+- **Javadoc** apenas para explicar o *porquê* de decisões não óbvias, nunca para repetir o óbvio.
+
+---
+
+# Arquitetura
+
+O código é **agrupado por domínio** (`catalog`, `inventory`, `organization`, `duplicate`, `metadata`, `geolocation`, `media`, `execution`, `security`, `timeline`, `settings`, `thumbnail`, `processing`, `quarantine`, `map`, `telemetry`, `statistics`, `preferences`, `notification`, `time`) e, **dentro de cada domínio**, separado em **camadas hexagonais** (ports & adapters). O bootstrap (`NimbusFileManagerApplication`) fica na raiz do pacote.
+
+## Camadas por domínio
+
+Cada domínio `<d>` se organiza em três camadas:
+
+- **`<d>/domain`** — núcleo de negócio. `domain/model` (entidades `@Entity` + value objects), `domain/enums` (enums do domínio) e `domain/repository` (interfaces Spring Data = **ports**, com `domain/repository/projection` para as projections que os ports retornam).
+- **`<d>/application`** — casos de uso e orquestração. Services, coordenadores, runners e helpers de regra (`resolver`, `rule`, `batch`, `watch`, `explorer`, `fingerprint`…), além de **`application/dto`** (todo DTO/record de dados do domínio — request, response, view, raw).
+- **`<d>/infrastructure`** — adapters. `infrastructure/rest` (controllers REST), `infrastructure/web` (controllers MVC + view-models), `infrastructure/persistence` (repositórios JDBC custom — adapters concretos sem interface Spring Data) e `infrastructure/config` quando o domínio tem `@Configuration`/`@ConfigurationProperties` próprios. Glue externo (ProcessRunners, FFM/nativo, adaptadores HTTP, provedores de e-mail) mora em `infrastructure`.
+
+**Direção da dependência (inviolável):** `infrastructure → application → domain`. O `domain` não conhece framework de entrega nem adapters; a `application` não conhece `infrastructure`. Por isso as projections retornadas por um port ficam em `domain/repository/projection` (nunca em `infrastructure`).
+
+## Shared kernel (`shared`)
+
+Modelo e adapters **transversais** (usados por ≥3 domínios ou sem dono único) vivem em `shared`, com a mesma estrutura de camadas: `shared/domain/model` (ex.: `CatalogFile`, `Execution` e família, `Movement`, `Photo`, `Video`, `MediaMetadata`, `StatusMessage`), `shared/domain/enums` (ex.: `FileType`, `LifecycleStatus`, `ExecutionStatus`), `shared/domain/repository` (ports sobre entidades do kernel, ex.: `CatalogFileRepository`, `ExecutionRepository`), `shared/application/dto` (DTOs genéricos como `PagedResponse`, `SizeResponse`) e `shared/infrastructure` (advices/handlers globais, config de bootstrap). Utilitários gerais (`util`, `i18n`, `concurrent`) ficam em `shared`. **Domínios dependem de `shared`, nunca o contrário.** Uma entidade/enum de dono único fica no `domain` do dono; só sobe para `shared` quando de fato é cross-cutting.
+
+## Controllers (`infrastructure/rest` · `infrastructure/web`)
+
+- Recebem requisições, validam entrada e orquestram chamadas; **nunca** implementam regra de negócio.
+- Advices/handlers globais transversais (`RestExceptionHandler`, `AppViewModelAdvice`) vivem em `shared/infrastructure`. Como não há mais um pacote único `api`/`web`, o `basePackages` desses advices **lista explicitamente** os pacotes `*.infrastructure.rest` (REST) ou `*.infrastructure.web` (MVC). Ao criar um domínio com controller novo, **incluir seu pacote nessa lista** — senão o advice/handler deixa de disparar para ele.
+
+## Services (`application`)
+
+- Concentram regra de negócio e coordenam transações; não conhecem a camada de entrega.
+
+## Repositories (`domain/repository` · `infrastructure/persistence`)
+
+- Acesso a dados exclusivamente; nenhuma regra de negócio (ver Persistência).
+
+## Entities (`domain/model`)
+
+- Representam persistência; evitar lógica complexa. Excluídas da cobertura via `**/domain/model/**`.
+
+## DTOs (`application/dto`)
+
+- Transporte de dados; sem comportamento.
+- **Todo DTO sem lógica** (record/classe puramente de dados) **reside no package `application/dto` do seu domínio** (genéricos em `shared/application/dto`). Fica fora da medição de cobertura (o JaCoCo exclui `**/dto/**`), evitando cobrar cobertura de acessores/records gerados. Um Parameter Object extraído por causa da regra S107 também nasce nesse package.
+
+## Configuração (`infrastructure/config`)
+
+- **Configurações funcionais, agrupadas ou pertencentes a um namespace do Nimbus File Manager** (`nimbus-file-manager.*`) devem usar `@ConfigurationProperties` — classe/record tipado, registrado em `@EnableConfigurationProperties`, injetado por construtor (ex.: `NimbusFileManagerProperties`, `BoundaryDatasetProperties`, `InventoryWatchProperties`). Uma classe dedicada quando o namespace é próprio; um componente do agregado quando cabe num record existente. O binding tipado centraliza defaults, valida na inicialização e mantém a testabilidade (o teste constrói a properties sem contexto Spring). O wiring do Spring (config de bootstrap) e as properties do agregado vivem em `shared/infrastructure/config`.
+- **`@Value` só é aceitável** para valores isolados de infraestrutura ou propriedades nativas do Spring, **quando uma classe dedicada não trouxer ganho real de coesão ou testabilidade**.
+
+---
+
+# Arquitetura hexagonal e abstrações
+
+A arquitetura hexagonal deve ser aplicada de forma **pragmática, não cerimonial**.
+
+- **Isolamento do domínio.** Nenhuma classe em `**/domain/**` depende de `**/application/**`, `**/infrastructure/**`, framework, tecnologia ou sistema externo. A dependência aponta sempre para dentro (`infrastructure → application → domain`); domínios dependem de `shared`, nunca o contrário. O que um port de repositório **retorna ou recebe é contrato do domínio**: projections, filtros e value objects de consulta vivem em `<domínio>/domain/repository/projection`, nunca em `application/dto`. *Verificável:* nenhum `import` de `.application.`/`.infrastructure.` dentro de `**/domain/**` (o build deve manter isso em zero).
+- **Portas e adaptadores nas fronteiras reais.** Adaptadores de I/O externo (ffmpeg/exiftool/mediainfo, HTTP, filesystem, e-mail, glue nativo) ficam **só** em `infrastructure`. Suporte de domínio que atravessa inevitavelmente a fronteira do framework (ex.: `ClockHolder`, ponte estática para os callbacks `@PrePersist`/`@PreUpdate` das entidades, que não recebem injeção) mora no domínio (`shared/domain`), não em `application`.
+- **Abstração só onde paga.** Criar uma porta/interface quando ela isola uma fronteira real — um sistema externo, uma tecnologia que pode mudar, ou um ganho concreto de testabilidade. **Não** criar abstração por rito: uma interface com um único implementador que apenas embrulha o framework, sem ponto de variação nem valor de teste, é cerimônia — evitar.
+- **Exceções pragmáticas conscientes.** As entidades JPA (`@Entity`) **são** o modelo de domínio e os repositórios Spring Data (`extends JpaRepository`) **são** os ports — vivem no `domain` mesmo carregando anotações de tecnologia. Não se separa um modelo POJO das entidades JPA nem se cria adapter só para embrulhar o Spring Data: o boilerplate de mapeamento não se paga numa aplicação (ao contrário de uma biblioteca de domínio complexo). É decisão explícita — o isolamento do primeiro item vale para dependências **entre classes do projeto**; JPA/Spring dentro do `domain` é a fronteira pragmática aceita.
+
+---
+
+# Responsabilidade única
+
+Cada classe deve ter uma responsabilidade predominante. Quando responsabilidades distintas aparecerem, preferir extrair métodos, componentes ou novas classes. Evitar classes que concentrem persistência, cache, integração, logging e regra ao mesmo tempo.
+
+**Nome reflete a responsabilidade, não a feature:**
+
+- **O nome da classe reflete a responsabilidade real e mais ampla — nunca uma feature específica que ela apenas atende.** Uma classe geral/compartilhada usada por várias telas não leva o prefixo de uma delas. Ex.: o endpoint que entrega detalhe/conteúdo de mídia ao lightbox (usado por timeline, mapa, arquivos, duplicados, quarentena) é `MediaContent*`, **não** `TimelineMedia*` — o prefixo de uma feature confunde com aquela feature. Se um nome de feature deixou de descrever o que a classe faz (ela cresceu para servir outras), **renomear**.
+- **Lógica compartilhada/cross-feature não mora dentro de uma classe de uma feature.** Utilidades consumidas por mais de uma feature (ex.: streaming de mídia — range/content-type/nome seguro) vivem numa classe neutra da sua própria responsabilidade (ex.: `MediaContentService`), **não** escondidas num serviço de feature (ex.: `TimelineService`) só porque surgiram ali primeiro. Uma classe de feature nunca acumula utilitários gerais que outras features também usam — isso vira acoplamento cross-feature disfarçado.
+
+---
+
+# Dívida técnica e limpeza
+
+- **Sem código morto.** Não deixar métodos, classes, campos, variáveis, imports, CSS, JavaScript, recursos ou dependências sem uso. Código não referenciado é removido, não comentado.
+- **Remover o obsoleto ao substituir.** Quando uma implementação substitui outra, a antiga sai no mesmo passo — nada de "recurso antigo" convivendo com o novo.
+- **Sem lógica duplicada entre classes.** A mesma regra/conversão/validação/tratamento vive num único lugar. **Reutilizar a implementação existente antes de criar uma nova.**
+- **Classe nova só com responsabilidade própria.** Não criar abstrações artificiais só para poupar poucas linhas; consolidar apenas quando for de fato uma responsabilidade única e coesa (ver [Responsabilidade única](#responsabilidade-única)).
+- **Comentários e Javadocs em inglês, atualizados e corretos.** O comentário explica o *porquê*; mantê-lo em dia com o código. Remover ou corrigir comentários/Javadocs órfãos, desatualizados ou incorretos. Todo comentário/Javadoc novo nasce em inglês.
+
+---
+
+# Persistência
+
+- **Nunca `@Lob` em `String`:** colunas `TEXT` mapeadas com `@Lob` são lidas como Large Object e quebram fora de transação (erro 500 em auto-commit). Deixar `String` sem `@Lob`.
+- **Acesso a dados só pela camada de repositório:** serviços e componentes **não** acessam `JdbcTemplate`/`NamedParameterJdbcTemplate` nem `EntityManager` diretamente. Vale inclusive para operações em massa: a query nativa entra como `@Modifying(nativeQuery = true)` num repositório Spring Data, ou como método de um repositório custom `@Repository` sobre `NamedParameterJdbcTemplate` quando o padrão set-based/streaming justifica evitar a sessão JPA. O componente fica só com a orquestração (parse, progresso, transação).
+- **Repositório mora na camada certa do seu domínio:** as **interfaces Spring Data** (`extends JpaRepository`/`Repository`) são **ports** e residem em `<domínio>/domain/repository` (com `domain/repository/projection` para as projections que retornam). Os **repositórios JDBC custom** (`@Repository` sobre classe concreta, sem interface Spring Data) são **adapters** e residem em `<domínio>/infrastructure/persistence`. **Não existe pacote central de repositórios.** Um repositório **cross-feature** (usado por mais de um domínio) mora no domínio **dono da entidade** que ele gerencia — os ports sobre entidades do kernel ficam em `shared/domain/repository`. O scan cobre a aplicação inteira (`@EnableJpaRepositories(basePackageClasses = NimbusFileManagerApplication.class)`), então não é preciso registrar cada subpacote.
+- **Casamento de prefixo de caminho com `LIKE` (Windows/PostgreSQL/HQL):** ao filtrar "descendentes de uma pasta" por `LIKE`, no PostgreSQL o `\` é o **escape padrão do `LIKE`** e nomes de arquivo contêm `_`/`%` (curingas) — um padrão ingênuo `like concat(:pasta, :sep, '%')` **falha para caminhos Windows** (só casa por acidente na raiz de unidade, `D:\`). Construir o padrão com `PathUtils.descendantLikePattern(pasta, separador)` (garante separador final, escapa `\ % _`) e usar `like :pattern escape '\'` — no **HQL** o backslash de um parâmetro bindado é tratado como **literal**, então o `escape '\'` explícito é obrigatório (ao contrário do SQL nativo). **Validar via Hibernate** (teste de integração Testcontainers inserindo caminhos com backslash como dados — roda no CI Linux, pois são só strings); nunca confiar só em probe JDBC cru, que usa o `LIKE` nativo e mascara o comportamento do HQL, nem em testes que usam só `/` (não cobrem Windows).
+
+---
+
+# Manipulação de arquivos
+
+- **Somente arquivos físicos:** nunca seguir symlink, junction ou atalho `.lnk`. Usar `PhysicalFilePolicy.isProcessable`; nunca `FileVisitOption.FOLLOW_LINKS`.
+- **Move seguro centralizado:** todo movimento de arquivo **do usuário** passa por `SecureFileMove` (baseline SHA-256 + verificação byte-a-byte + rollback) — vale para organização, dedup e undos. Nunca `Files.move` direto num arquivo do usuário.
+- **Exceção legítima:** artefatos internos/regeneráveis que **não** são mídia do usuário podem usar `Files.move` direto — por exemplo, mover o arquivo temporário de um download de dataset ao destino, ou um thumbnail gerado para o cache. A garantia forte (hash + rollback) existe para dados insubstituíveis do usuário, não para artefatos que o sistema regenera.
+
+---
+
+# Internacionalização
+
+- Nenhum texto exibido ao usuário pode ficar hardcoded: nos templates via `#{chave}`, no backend via `message(chave, args...)`. Todo texto vive nos bundles (`messages.properties` pt-BR padrão + `messages_en.properties`).
+- Backend **sem fallback no código** — a chave existe só nos bundles; chave ausente lança `NoSuchMessageException`.
+- Toda nova chave existe em **todos os idiomas suportados**. A paridade é travada no build por testes dedicados (chaves `backend.*` usadas no código e paridade pt×en) — o build quebra se faltar.
+
+---
+
+# Responsabilidades Front-end × Back-end
+
+O **back-end é a única fonte de verdade do domínio**; o front-end (templates Thymeleaf, JS, CSS) é responsável **apenas por apresentação, interação e renderização**.
+
+**Back-end** decide e entrega pronto: regras de negócio, validações, permissões, cálculos, estados do domínio, classificações, decisões, parâmetros de negócio, mensagens de negócio e **toda a internacionalização**. Nenhum texto de negócio fica hardcoded em `Controller`, `Service`, `Exception`, `Validator`, DTO, `enum` ou qualquer classe Java — resolve-se via `MessageSource` (ver Internacionalização), com o texto vivendo em `messages.properties`/`messages_en.properties`.
+
+**Front-end** faz **só**: renderizar telas, exibir informações, interação do usuário, estado exclusivamente visual, layout, navegação e componentes. Não conhece regra de negócio nem traduz domínio — apenas exibe os textos já resolvidos que a API ou o template entregam.
+
+**Proibido no front:**
+- **Tradução de domínio** — `switch`/`if`/ternário/`Map`/objeto/`enum`/array que traduza status, tipo, categoria, motivo, mensagem ou descrição. A tradução vive nos bundles do back-end; a API/o `MessageSource` entrega o texto pronto.
+- **Regra de negócio** — decisão por status, cálculo, classificação, bloqueio, filtro de negócio, ordenação por regra, validação de domínio, ou combinação de campos para inferir um estado.
+- **Decisão de permissão** — o front nunca decide "pode editar/excluir/desfazer/mover/baixar/executar". O back-end informa explicitamente via campos (`canEdit`, `canDelete`, `canUndo`, `canMove`, `canDownload`, …).
+- **Comparação por texto traduzido** — nunca `if (status === "Processado")` nem `if (message === "Arquivo já existe")`. Comparar sempre por **código/enum/flag/identificador técnico**, jamais pelo texto exibido.
+- **Duplicação de domínio** — listas de status/categorias/tipos/motivos não se replicam no front; a API as fornece.
+
+Contratos devem **entregar a decisão pronta** em vez de campos crus para o front decidir — ex.: preferir `{"status":"PROCESSING","canDelete":false,"canRetry":true}` a `{"status":"PROCESSING","owner":true,"locked":false}` deixando o front combinar.
+
+**Pode permanecer no front:** texto exclusivamente visual sem conceito de domínio (nome de botão, placeholder, tooltip de componente, label fixo de interface) no i18n do front; e CSS, layout, organização visual, componentes, estado visual, animações e comportamento exclusivo da interface.
+
+---
+
+# Interface e preferências
+
+- **Preferência de tela/UI, por usuário:** toda opção que o usuário escolhe numa tela é gravada por usuário (`UserPagePreference`/`UserPagePreferenceService`) e reaplicada ao reabrir a tela. Nunca resetar para o default a cada visita.
+- **Configuração global da aplicação:** parâmetros que valem para a instalação inteira (não por usuário) vivem em `AppSetting`/`AppSettingService` (key-value tipado, editável na tela de configurações, semeado com defaults). Ex.: fuso horário da aplicação, provedores, limites.
+- Não confundir as duas: o que é escolha pessoal de visualização é `UserPagePreference`; o que é comportamento da aplicação é `AppSetting`.
+- **Ações secundárias** usam `.button.secondary` (com borda) de `components.css`, nunca link ad-hoc. Ao criar/alterar UI, validar contraste no tema **claro e escuro** reaproveitando as variáveis de tema.
+
+---
+
+# Observabilidade
+
+Níveis de log:
+
+- **ERROR** — somente falhas que exigem investigação.
+- **WARN** — comportamento inesperado, porém recuperável.
+- **INFO** — eventos relevantes do ciclo de vida.
+- **DEBUG** — detalhes técnicos.
+- **TRACE** — investigação profunda.
+
+**Nunca registrar stack traces (nem ERROR) para situações esperadas** — por exemplo, falhas provocadas por um shutdown em andamento são DEBUG, não ERROR.
+
+---
+
+# Performance
+
+- Não otimizar prematuramente; medir antes de otimizar.
+- Evitar O(n²) desnecessário e consultas repetidas.
+- Preferir processamento incremental e streaming quando aplicável.
+
+---
+
+# Testes
+
+- **Regra base:** toda funcionalidade nova ou alteração vem acompanhada de teste (unitário; e de integração quando envolver banco, HTTP ou processo externo). Nenhuma mudança pode baixar a cobertura.
+- Toda lógica condicional nova testa os caminhos **positivo, negativo e limite**.
+- Os testes validam **comportamento observável**. Nunca escrever teste apenas para aumentar percentual de cobertura.
+
+## Exclusões legítimas de cobertura
+
+Classes fora da medição (configuradas no `pom.xml` e espelhadas nas exclusões do Sonar), por não serem unit-testáveis de forma significativa — são cobertas por testes de integração ou verificação manual:
+
+- `NimbusFileManagerApplication` (bootstrap) e `**/infrastructure/config/**` (fiação Spring).
+- `**/domain/model/**`, `**/dto/**` e `**/application/constants/**` (dados sem lógica — entidades, DTOs e holders de constantes do domínio).
+- `**/repository/**` e `**/*Repository` (contratos de acesso a dados).
+- `**/*ProcessRunner` (glue de processo externo: ffmpeg/exiftool/mediainfo).
+- `**/GeoBoundariesSource` (adaptador HTTP de download da base geográfica) e `**/windows/**` (glue nativo FFM/kernel32, só-Windows).
+
+Lógica de verdade **nunca** mora nessas classes excluídas — fica no serviço que as usa, que é testado. As metas numéricas de cobertura e o estado atual vivem no README.
+
+---
+
+# Qualidade estática (Sonar)
+
+- **Toda tarefa deve terminar sem criar nenhuma issue nova no Sonar.** Rodar a análise ao final e comparar o total — e a contagem **por regra** — com o estado anterior.
+- Issues **preexistentes** podem permanecer apenas quando **não pertencem ao escopo** da tarefa.
+- Qualquer **aumento por regra** — inclusive uma issue nova surgida como **efeito colateral** de outra correção — deve ser **investigado e eliminado antes de encerrar**. Não se entrega tarefa que introduz débito, ainda que trivial.
+- Falsos positivos e casos legítimos (padrão idiomático, exigência de biblioteca/spec, hotspot seguro por design) são **marcados como aceitos/revisados no Sonar com justificativa**, nunca "resolvidos" com código artificial.
+
+---
+
+# Warnings de compilação e análise estática
+
+Antes de concluir qualquer tarefa, validar os arquivos criados ou modificados quanto a warnings de compilação e análise estática.
+
+- Não introduzir novos warnings.
+- Corrigir warnings surgidos como efeito colateral da própria tarefa, mesmo quando não forem reportados por todas as ferramentas de análise.
+- Não ocultar warnings com `@SuppressWarnings`, exclusões de análise ou alteração das configurações das ferramentas, salvo quando houver justificativa técnica documentada.
+- Fechar corretamente recursos que implementem `AutoCloseable`, preferencialmente com `try-with-resources`.
+- Declarar `serialVersionUID` em exceções e demais classes serializáveis quando aplicável.
+- Utilizar variáveis não nomeadas (`_`) para parâmetros intencionalmente não utilizados (`catch`, lambdas etc.) quando suportado pela versão do Java adotada pelo projeto.
+
+---
+
+# Versionamento
+
+A versão fica em `pom.xml` `<version>`, no formato **`MAJOR.MINOR.PATCH.BUILD`**. A classificação considera o **impacto para o usuário**, não a quantidade de arquivos modificados:
+
+- **MAJOR** — mudança incompatível ou arquitetural profunda. Incrementa MAJOR, zera MINOR e PATCH, incrementa BUILD.
+- **MINOR** — nova funcionalidade compatível. Incrementa MINOR, zera PATCH, incrementa BUILD.
+- **PATCH** — correção de bug ou pequena melhoria. Incrementa PATCH e BUILD.
+- **BUILD** — contador histórico sempre crescente. Refatoração, teste, doc interna ou config sem mudança de comportamento público sobem **só o BUILD**.
+
+Quando e como aplicar:
+
+- Alterar a versão **uma única vez por tarefa**, **só depois** da implementação concluída e revisada, e apenas se houve alteração real no repositório — nunca para análise ou diagnóstico puro.
+- Rodar os testes aplicáveis **antes**; se falharem por causa da mudança, **não** incrementar. Se o ambiente não permitir rodar os testes, avisar e ainda assim incrementar se a implementação estiver concluída e revisada.
+- Ao concluir, informar: versão anterior, versão nova e o motivo da classificação.
+
+---
+
+# Git
+
+- **Nunca commitar sem pedido explícito** do desenvolvedor. Implementar, revisar, testar e versionar são feitos livremente; o commit é sempre uma ação solicitada.
+
+---
+
+# README
+
+O README representa o **estado atual** do projeto — é onde vivem métricas, cobertura, versão, funcionalidades, stack e requisitos. Sempre atualizar quando houver mudança em funcionalidades, arquitetura pública, stack, requisitos ou cobertura.
+
+Cobertura: ao final de todo build que rode a suíte completa (`mvn test`/`verify`), atualizar o bloco de qualidade do README com os valores do `QualitySummary` (contagem de testes e métricas JaCoCo). Não deixar os números defasados — são a referência pública de qualidade e devem refletir o último build local limpo.
+
+---
+
+# Evolução deste documento
+
+Novas regras só entram quando resolvem um problema recorrente, eliminam ambiguidade ou representam decisão arquitetural permanente. Evitar regras temporárias ou específicas de uma única implementação. Regra que conflite com o código existente é decidida explicitamente antes de entrar.

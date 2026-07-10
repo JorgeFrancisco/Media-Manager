@@ -1,0 +1,33 @@
+# Estilo de código canônico do nimbus-file-manager — fonte de verdade para todo código novo.
+# Derivado do código existente (medido estatisticamente), não presumido. Ao propor uma
+# regra nova que conflite com o código atual, decidir explicitamente antes de adicioná-la.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = false
+trim_trailing_whitespace = true
+
+[*.{java,xml,html,css,js}]
+indent_style = tab
+tab_width = 4
+
+# Largura do formatter do Eclipse para Java (99,85% das linhas <= 120; as exceções
+# são assinaturas/anotações que o formatter não quebra). Advisória: mostra a régua,
+# não reformata.
+[*.java]
+max_line_length = 120
+
+[*.sql]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false

@@ -1,0 +1,91 @@
+:root {
+	--bg: #f5f7fb;
+	--bg-subtle: #f8fafc;
+	--panel: #ffffff;
+	--text: #1f2937;
+	--muted: #667085;
+	--line: #d9e0ea;
+	--accent: #2563eb;
+	--accent-hover: #1d4ed8;
+	--accent-soft: #eff6ff;
+	--accent-soft-hover: #e0e7ff;
+	--accent-soft-line: #bfdbfe;
+	--accent-strong: #1d4ed8;
+	--teal: #22c7ba;
+	--danger: #b42318;
+	--danger-soft: #fee4e2;
+	--danger-soft-weak: #fff7f5;
+	--danger-soft-line: #fecdca;
+	--warn: #b54708;
+	--warn-soft: #fef0c7;
+	--ok: #067647;
+	--ok-soft: #dcfae6;
+	--muted-soft: #eceff3;
+	--info-grad-a: #eff6ff;
+	--info-grad-b: #ecfeff;
+	--sidebar: #0f2a4d;
+	--sidebar-hover: #1f4b83;
+}
+
+/*
+ * Dark theme: scoped to .shell (the app layout's root, see fragments/layout.html) rather than
+ * :root, so it only affects authenticated /app/** pages that render through that shared fragment -
+ * the pre-login screens (login/register/2FA) don't have a theme preference to read yet and stay
+ * light. Custom properties still cascade normally to every descendant from here. --sidebar/
+ * --sidebar-hover and --teal are intentionally omitted: the sidebar is already a fixed dark navy
+ * panel regardless of theme, and teal stays legible on both backgrounds.
+ */
+.shell[data-theme="dark"] {
+	--bg: #0b1626;
+	--bg-subtle: #17253f;
+	--panel: #12213a;
+	--text: #e5e9f0;
+	--muted: #8b98b3;
+	--line: #2a3b5c;
+	--accent: #3b82f6;
+	--accent-hover: #2563eb;
+	--accent-soft: #16233d;
+	--accent-soft-hover: #1c2c4a;
+	--accent-soft-line: #2c3e63;
+	--accent-strong: #93c5fd;
+	--danger: #f87171;
+	--danger-soft: #3a1518;
+	--danger-soft-weak: #2c1518;
+	--danger-soft-line: #5c2328;
+	--warn: #fbbf24;
+	--warn-soft: #3a2c0f;
+	--ok: #34d399;
+	--ok-soft: #113828;
+	--muted-soft: #24344f;
+	--info-grad-a: #16233d;
+	--info-grad-b: #16332f;
+
+	background: var(--bg);
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+	font-size: 14px;
+}
+
+a {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+.muted {
+	color: var(--muted);
+}
+
+.path {
+	font-family: Consolas, monospace;
+	font-size: 12px;
+	overflow-wrap: anywhere;
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.map}, 'map')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.map})}">
+<section class="map-page">
+	<header class="map-header panel">
+		<div>
+			<h1 th:text="#{nav.map}">Mapa</h1>
+			<p class="muted" th:text="#{map.subtitle}">Onde suas fotos e vídeos foram capturados.</p>
+		</div>
+		<div class="map-legend" th:if="${mapEnabled}">
+			<span class="map-legend-item"><i class="map-dot map-dot-exif"></i><span th:text="#{map.legend.exif}">GPS real</span></span>
+			<span class="map-legend-item"><i class="map-dot map-dot-admin"></i><span th:text="#{map.legend.admin}">Aproximado</span></span>
+		</div>
+	</header>
+
+	<div th:unless="${mapEnabled}" class="map-disabled panel muted" th:text="#{map.disabled}">O mapa está desativado nas configurações.</div>
+
+	<div th:if="${mapEnabled}" id="mapRoot" class="map-canvas" role="application" th:aria-label="#{nav.map}"
+		th:attr="data-tile-url=${mapTileUrl}, data-tile-attribution=${mapTileAttribution}, data-max-zoom=${mapMaxZoom}"></div>
+	<p th:if="${mapEnabled}" id="mapStatus" class="muted map-status" role="status"></p>
+
+	<aside th:if="${mapEnabled}" id="mapPanel" class="map-panel panel" aria-live="polite">
+		<header class="map-panel-header">
+			<div>
+				<strong id="mapPanelTitle"></strong>
+				<span class="muted" id="mapPanelCount"></span>
+			</div>
+			<button type="button" id="mapPanelClose" class="icon-button" th:title="#{map.close}" th:aria-label="#{map.close}"><i class="bi bi-x-lg"></i></button>
+		</header>
+		<ul id="mapPanelList" class="map-panel-list"></ul>
+		<button type="button" id="mapPanelMore" class="button-secondary map-panel-more" hidden th:text="#{map.loadMore}">Carregar mais</button>
+	</aside>
+</section>
+</div>
+
+<script th:if="${mapEnabled}" th:src="@{/webjars/leaflet/1.9.4/dist/leaflet.js}"></script>
+<script th:if="${mapEnabled}" th:src="@{/js/pages/map.js}"></script>
+</body>
+</html>

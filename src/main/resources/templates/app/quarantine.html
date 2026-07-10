@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{quarantine.title}, 'quarantine')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{quarantine.title})}">
+<section th:with="thumbWidth=${viewMode == 'xlarge' or viewMode == 'large' ? 640 : 320}">
+	<div class="panel">
+		<h2 th:text="#{quarantine.title}">Quarentena</h2>
+		<p class="muted" th:text="#{quarantine.intro}">Os arquivos que você removeu na tela de Duplicados foram movidos para a pasta de quarentena — saíram da biblioteca, mas continuam guardados no disco. Aqui você pode restaurá-los de volta ao local de origem, um a um ou vários de uma vez. Nada é apagado por esta tela.</p>
+		<p class="muted" th:text="#{quarantine.count(${totalElements})}">0 arquivo(s) em quarentena.</p>
+	</div>
+
+	<div id="quarantineStatus" class="alert section" role="status" hidden></div>
+
+	<div class="panel section quarantine-toolbar pagination-toolbar" th:if="${totalElements > 0}">
+		<div class="quarantine-select">
+			<label class="quarantine-select-all">
+				<input type="checkbox" id="quarantineSelectAll"> <span th:text="#{quarantine.selectAll}">Selecionar todos</span>
+			</label>
+			<button type="button" class="button small js-restore-selected" disabled>
+				<i class="bi bi-arrow-counterclockwise"></i> <span th:text="#{quarantine.restoreSelected}">Restaurar selecionados</span> (<span id="quarantineSelectedCount">0</span>)
+			</button>
+			<button type="button" class="button danger small js-delete-selected" disabled>
+				<i class="bi bi-trash3"></i> <span th:text="#{quarantine.deleteForever}">Apagar definitivamente</span> (<span id="quarantineDeleteCount">0</span>)
+			</button>
+			<button type="button" class="button secondary small js-cleanup-absent" th:if="${hasAbsent}"
+					th:title="#{quarantine.cleanupAbsent.title}">
+				<i class="bi bi-eraser"></i> <span th:text="#{quarantine.cleanupAbsent}">Limpar ausentes</span>
+			</button>
+		</div>
+		<div class="quarantine-controls">
+			<nav class="pagination" th:if="${totalPages > 1}" th:aria-label="#{pagination.label}">
+				<a class="button secondary small" th:if="${hasPrevious}"
+						th:href="@{/app/quarantine(view=${viewMode}, size=${pageSize}, page=0)}" th:text="#{pagination.first}">Primeira</a>
+				<span class="button secondary small disabled" th:unless="${hasPrevious}" th:text="#{pagination.first}">Primeira</span>
+				<a class="button secondary small" th:if="${hasPrevious}"
+						th:href="@{/app/quarantine(view=${viewMode}, size=${pageSize}, page=${pageNumber - 1})}" th:text="#{pagination.previous}">Anterior</a>
+				<span class="button secondary small disabled" th:unless="${hasPrevious}" th:text="#{pagination.previous}">Anterior</span>
+				<span class="pagination-page" th:text="#{pagination.pageInfo(${pageNumber + 1}, ${totalPages})}">Página 1 de 1</span>
+				<a class="button secondary small" th:if="${hasNext}"
+						th:href="@{/app/quarantine(view=${viewMode}, size=${pageSize}, page=${pageNumber + 1})}" th:text="#{pagination.next}">Próxima</a>
+				<span class="button secondary small disabled" th:unless="${hasNext}" th:text="#{pagination.next}">Próxima</span>
+				<a class="button secondary small" th:if="${hasNext}"
+						th:href="@{/app/quarantine(view=${viewMode}, size=${pageSize}, page=${totalPages - 1})}" th:text="#{pagination.last}">Última</a>
+				<span class="button secondary small disabled" th:unless="${hasNext}" th:text="#{pagination.last}">Última</span>
+			</nav>
+			<form class="explorer-size" th:action="@{/app/quarantine}" method="get">
+				<input type="hidden" name="view" th:value="${viewMode}">
+				<select name="size" onchange="this.form.submit()" th:title="#{files.itemsPerPage}">
+					<option th:each="option : ${pageSizes}" th:value="${option}" th:text="#{files.itemsOption(${option})}"
+							th:selected="${option == pageSize}">50 itens</option>
+				</select>
+			</form>
+			<div class="quarantine-view-switch">
+				<a th:classappend="${viewMode == 'details'} ? 'active'" th:title="#{view.details}"
+						th:href="@{/app/quarantine(view='details', size=${pageSize}, page=${pageNumber})}"><i class="bi bi-list-ul"></i></a>
+				<a th:classappend="${viewMode == 'small'} ? 'active'" th:title="#{view.small}"
+						th:href="@{/app/quarantine(view='small', size=${pageSize}, page=${pageNumber})}"><i class="bi bi-grid-3x3-gap"></i></a>
+				<a th:classappend="${viewMode == 'large'} ? 'active'" th:title="#{view.large}"
+						th:href="@{/app/quarantine(view='large', size=${pageSize}, page=${pageNumber})}"><i class="bi bi-grid"></i></a>
+				<a th:classappend="${viewMode == 'xlarge'} ? 'active'" th:title="#{view.xlarge}"
+						th:href="@{/app/quarantine(view='xlarge', size=${pageSize}, page=${pageNumber})}"><i class="bi bi-square"></i></a>
+			</div>
+		</div>
+	</div>
+
+	<div class="panel section" th:if="${#lists.isEmpty(items)}">
+		<p class="muted" th:text="#{quarantine.empty}">Nenhum arquivo em quarentena no momento.</p>
+	</div>
+
+	<div class="panel section" th:if="${!#lists.isEmpty(items) and viewMode == 'details'}">
+		<div class="table-wrap">
+			<table class="table quarantine-table">
+				<thead>
+					<tr><th></th><th th:text="#{quarantine.col.file}">Arquivo</th><th th:text="#{quarantine.col.originFolder}">Pasta de origem</th><th th:text="#{quarantine.col.inQuarantine}">Na quarentena</th><th th:text="#{common.size}">Tamanho</th><th th:text="#{quarantine.col.removedAt}">Removido em</th><th th:text="#{quarantine.col.status}">Situação</th><th th:text="#{common.actions}">Ações</th></tr>
+				</thead>
+				<tbody>
+				<tr th:each="item : ${items}" th:attr="data-movement-id=${item.movementId()}">
+					<td>
+						<input type="checkbox" class="js-select" th:attr="data-movement-id=${item.movementId()}"
+								th:disabled="${!item.presentInQuarantine()}">
+					</td>
+					<td class="media-cell" th:title="${item.originalPath()}">
+						<th:block th:if="${item.presentInQuarantine()}">
+							<th:block th:replace="~{fragments/media-cards :: card(${item}, ${thumbWidth})}"></th:block>
+						</th:block>
+						<span class="media-card-open static quarantine-media-absent" th:unless="${item.presentInQuarantine()}">
+							<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+							<span class="media-card-name" th:text="${item.name()}">arquivo ausente</span>
+						</span>
+					</td>
+					<td class="path" th:text="${item.originalFolder()}" th:title="${item.originalPath()}">pasta</td>
+					<td class="path" th:text="${item.quarantineFolder()}" th:title="${item.quarantinePath()}">quarentena</td>
+					<td th:text="${item.sizeLabel()}">—</td>
+					<td th:text="${#temporals.format(item.quarantinedAt(), 'dd/MM/yyyy HH:mm')}">data</td>
+					<td>
+						<span class="badge error" th:unless="${item.presentInQuarantine()}" th:text="#{quarantine.status.absent}">Ausente na quarentena</span>
+						<span class="badge warn"
+								th:if="${item.presentInQuarantine() and !item.originFolderExists()}" th:text="#{quarantine.status.originGone}">Pasta de origem sumiu</span>
+						<span class="badge warn"
+								th:if="${item.presentInQuarantine() and item.originFolderExists() and item.conflict()}" th:text="#{quarantine.status.conflict}">Conflito no destino</span>
+						<span class="badge ok"
+								th:if="${item.presentInQuarantine() and item.originFolderExists() and !item.conflict()}" th:text="#{quarantine.status.ready}">Pronto para restaurar</span>
+					</td>
+					<td>
+						<button type="button" class="button small js-restore-item"
+								th:attr="data-movement-id=${item.movementId()},
+										data-origin-missing=${!item.originFolderExists()},
+										data-conflict=${item.conflict()},
+										data-present=${item.presentInQuarantine()},
+										data-file-name=${item.name()}"
+								th:disabled="${!item.presentInQuarantine()}" th:text="#{action.restore}">Restaurar</button>
+					</td>
+				</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="panel section" th:if="${!#lists.isEmpty(items) and viewMode != 'details'}">
+		<div th:class="|media-grid ${viewMode}|">
+			<div class="media-tile" th:each="item : ${items}" th:attr="data-movement-id=${item.movementId()}">
+				<input type="checkbox" class="js-select media-tile-select" th:attr="data-movement-id=${item.movementId()}"
+						th:disabled="${!item.presentInQuarantine()}" th:title="#{quarantine.selectItem}">
+				<th:block th:if="${item.presentInQuarantine()}">
+					<th:block th:replace="~{fragments/media-cards :: card(${item}, ${thumbWidth})}"></th:block>
+				</th:block>
+				<span class="media-card-open static quarantine-media-absent" th:unless="${item.presentInQuarantine()}">
+					<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+					<span class="media-card-name" th:text="${item.name()}">arquivo ausente</span>
+				</span>
+				<div class="media-tile-meta">
+					<div class="media-tile-status">
+						<span class="badge error" th:unless="${item.presentInQuarantine()}" th:text="#{quarantine.status.absent.short}">Ausente</span>
+						<span class="badge warn"
+								th:if="${item.presentInQuarantine() and !item.originFolderExists()}" th:text="#{quarantine.status.originGone.short}">Origem sumiu</span>
+						<span class="badge warn"
+								th:if="${item.presentInQuarantine() and item.originFolderExists() and item.conflict()}" th:text="#{quarantine.status.conflict.short}">Conflito</span>
+						<span class="badge ok"
+								th:if="${item.presentInQuarantine() and item.originFolderExists() and !item.conflict()}" th:text="#{quarantine.status.ready.short}">Pronto</span>
+					</div>
+					<button type="button" class="button small js-restore-item"
+							th:attr="data-movement-id=${item.movementId()},
+									data-origin-missing=${!item.originFolderExists()},
+									data-conflict=${item.conflict()},
+									data-present=${item.presentInQuarantine()},
+									data-file-name=${item.name()}"
+							th:disabled="${!item.presentInQuarantine()}" th:text="#{action.restore}">Restaurar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<dialog id="quarantineConflictDialog" class="quarantine-dialog" aria-labelledby="quarantineConflictTitle">
+		<header class="quarantine-dialog-header">
+			<h2 id="quarantineConflictTitle" th:text="#{quarantine.conflict.title}">Conflito no destino</h2>
+		</header>
+		<p><span th:text="#{quarantine.conflict.body.before}">Já existe um arquivo chamado</span> <strong id="quarantineConflictName">arquivo</strong> <span th:text="#{quarantine.conflict.body.after}">na pasta de destino. O que deseja fazer? Nada é sobrescrito.</span></p>
+		<div class="actions">
+			<button type="button" class="secondary js-conflict-cancel" th:text="#{action.cancel}">Cancelar</button>
+			<button type="button" class="secondary js-conflict-skip" th:text="#{quarantine.conflict.skip}">Pular este arquivo</button>
+			<button type="button" class="button js-conflict-rename" th:text="#{quarantine.conflict.rename}">Restaurar com novo nome</button>
+		</div>
+	</dialog>
+
+	<dialog id="quarantineOriginDialog" class="quarantine-dialog" aria-labelledby="quarantineOriginTitle">
+		<header class="quarantine-dialog-header">
+			<h2 id="quarantineOriginTitle" th:text="#{quarantine.origin.title}">Pasta de origem não existe mais</h2>
+		</header>
+		<p><span th:text="#{quarantine.origin.body.before}">A pasta original de</span> <strong id="quarantineOriginName">arquivo</strong> <span th:text="#{quarantine.origin.body.after}">não existe mais. Escolha outra pasta para restaurar este arquivo.</span></p>
+		<p class="quarantine-origin-chosen"><span th:text="#{quarantine.origin.chosen}">Pasta escolhida:</span>
+			<span id="quarantineChosenFolder" class="path" th:text="#{quarantine.origin.none}">nenhuma</span></p>
+		<input type="hidden" id="restoreDestinationInput" value="">
+		<div class="actions">
+			<button type="button" class="secondary js-origin-cancel" th:text="#{action.cancel}">Cancelar</button>
+			<button type="button" class="secondary folder-picker-open" data-target="#restoreDestinationInput">
+				<i class="bi bi-folder2"></i> <span th:text="#{quarantine.origin.chooseFolder}">Escolher pasta</span></button>
+			<button type="button" class="button js-origin-restore" disabled th:text="#{quarantine.origin.restoreHere}">Restaurar nesta pasta</button>
+		</div>
+	</dialog>
+
+	<dialog id="quarantineDeleteDialog" class="quarantine-dialog" aria-labelledby="quarantineDeleteTitle">
+		<header class="quarantine-dialog-header">
+			<h2 id="quarantineDeleteTitle" th:text="#{quarantine.delete.title}">Apagar definitivamente</h2>
+		</header>
+		<p><span th:text="#{quarantine.delete.body.before}">Apagar de vez</span> <strong id="quarantineDeleteCountDialog">0</strong> <span th:text="#{quarantine.delete.body.after}">arquivo(s) da quarentena? O arquivo é removido do disco e do banco.</span> <strong th:text="#{quarantine.delete.irreversible}">Esta ação não pode ser desfeita.</strong></p>
+		<div class="actions">
+			<button type="button" class="secondary js-delete-cancel" th:text="#{action.cancel}">Cancelar</button>
+			<button type="button" class="button danger js-delete-confirm" th:text="#{quarantine.deleteForever}">Apagar definitivamente</button>
+		</div>
+	</dialog>
+
+	<div th:replace="~{fragments/folder-picker :: folderPicker}"></div>
+</section>
+</div>
+<script th:src="@{/js/pages/quarantine.js}"></script>
+</body>
+</html>

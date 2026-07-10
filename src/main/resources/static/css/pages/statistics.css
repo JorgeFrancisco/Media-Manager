@@ -1,0 +1,56 @@
+/* Statistics screen: the side-by-side execution comparison grid. The reusable bar-chart
+   rules (.chart, .chart-row, .chart-bar…) now live in css/components.css so they also render
+   on the Dashboard, which includes the shared fragments/library.html summary block.
+   All colours come from the theme variables so light/dark both work. */
+
+/* --- Execution comparison ------------------------------------------------ */
+
+.compare-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 0.75rem;
+	margin-top: 0.5rem;
+}
+
+.compare-card {
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	padding: 0.75rem;
+	background: var(--bg-subtle);
+}
+
+.compare-card h3 {
+	margin: 0 0 0.35rem;
+	font-size: 0.95rem;
+}
+
+.compare-card dl {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.15rem 0.75rem;
+	margin: 0;
+}
+
+.compare-card dt { color: var(--muted); font-size: 0.82rem; }
+.compare-card dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Grouped phase bars: one labelled block per phase, one bar per execution. */
+.phase-group { margin-top: 0.75rem; }
+.phase-group > .phase-name { font-size: 0.86rem; font-weight: 600; margin-bottom: 0.3rem; }
+
+.phase-bars { display: flex; flex-direction: column; gap: 0.35rem; }
+
+.phase-bar-row {
+	display: grid;
+	grid-template-columns: 10rem 1fr auto;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.phase-bar-row .series {
+	color: var(--muted);
+	font-size: 0.8rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}

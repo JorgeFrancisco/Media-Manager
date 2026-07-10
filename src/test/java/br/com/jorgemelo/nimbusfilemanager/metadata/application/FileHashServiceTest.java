@@ -1,0 +1,84 @@
+package br.com.jorgemelo.nimbusfilemanager.metadata.application;
+
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+class FileHashServiceTest {
+
+	@TempDir
+	Path tempDir;
+
+	private final FileHashService service = new FileHashService();
+
+	@Test
+	void shouldCalculateKnownHashes() throws Exception {
+		Path file = Files.writeString(tempDir.resolve("file.txt"), "abc");
+
+		Assertions.assertThat(service.md5(file)).isEqualTo("900150983cd24fb0d6963f7d28e17f72");
+		Assertions.assertThat(service.sha256(file))
+				.isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+	}
+
+	@Test
+	void hashesShouldCalculateMd5AndSha256InSingleRead() throws Exception {
+		Path file = Files.writeString(tempDir.resolve("file.txt"), "abc");
+
+		AtomicInteger opens = new AtomicInteger();
+
+		FileHashService combined = new FileHashService(_ -> {
+			opens.incrementAndGet();
+
+			return new ByteArrayInputStream("abc".getBytes(StandardCharsets.UTF_8));
+		});
+
+		var hashes = combined.hashes(file);
+
+		Assertions.assertThat(hashes.md5()).isEqualTo(service.md5(file));
+		Assertions.assertThat(hashes.sha256()).isEqualTo(service.sha256(file));
+		Assertions.assertThat(opens).hasValue(1);
+	}
+
+	@Test
+	void shouldValidateFileBeforeHashing() {
+		assertThatIllegalArgumentException().isThrownBy(() -> service.sha256(tempDir.resolve("missing.txt")))
+				.withMessageContaining("File does not exist");
+		assertThatIllegalArgumentException().isThrownBy(() -> service.md5(tempDir))
+				.withMessageContaining("Path is not a regular file");
+	}
+
+	@Test
+	void shouldWrapReadFailures() throws Exception {
+		Path file = Files.writeString(tempDir.resolve("file.txt"), "abc");
+
+		FileHashService failing = new FileHashService(_ -> {
+			throw new IOException("locked");
+		});
+
+		Assertions.assertThatThrownBy(() -> failing.sha256(file)).isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("Could not read file to calculate hash").hasMessageContaining("locked");
+	}
+
+	@Test
+	void shouldWrapUnavailableHashAlgorithm() throws Exception {
+		Path file = Files.writeString(tempDir.resolve("file.txt"), "abc");
+
+		FileHashService failing = new FileHashService(Files::newInputStream, _ -> {
+			throw new NoSuchAlgorithmException("missing");
+		});
+
+		Assertions.assertThatThrownBy(() -> failing.md5(file)).isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("Hash algorithm not available")
+				.hasRootCauseInstanceOf(NoSuchAlgorithmException.class);
+	}
+}

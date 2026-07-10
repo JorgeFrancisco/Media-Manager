@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.dashboard}, 'dashboard')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.dashboard})}">
+<section id="autoRefreshRoot" th:attr="data-refresh-ms=${hasRunningExecutions} ? 15000">
+	<img class="app-banner" th:src="@{/img/nimbus-file-manager-banner-fixed.png}" alt="">
+	<div th:replace="~{fragments/library :: summary(${summary})}"></div>
+	<div class="panel section" id="executionsRoot"
+			th:attr="data-page=${executionsPage.number},data-has-next=${executionsPage.hasNext()}">
+		<h2 th:text="#{dashboard.executions}">Execuções</h2>
+		<label><span th:text="#{common.filter}">Filtro</span> <input data-table-filter="#executionsTable" th:placeholder="#{dashboard.filter.placeholder}" placeholder="Status, tipo, path"></label>
+		<div class="table-wrap">
+			<table id="executionsTable" class="table section">
+				<thead><tr><th th:text="#{common.id}">ID</th><th th:text="#{common.type}">Tipo</th><th th:text="#{dashboard.execution.trigger}">Gatilho</th><th th:text="#{common.status}">Status</th><th th:text="#{common.start}">Início</th><th th:text="#{common.origin}">Origem</th><th th:text="#{common.errors}">Erros</th><th></th></tr></thead>
+				<tbody id="executionsRows" th:fragment="rows">
+				<tr th:each="execution : ${executionsPage.content}">
+					<td th:text="${execution.executionId()}">1</td>
+					<td th:text="${execution.typeLabel()}">INVENTORY</td>
+					<td th:text="${execution.triggerLabel()}">Manual</td>
+					<td><span class="badge" th:classappend="${execution.status() == 'FINISHED' ? 'ok' : ((execution.status() == 'FINISHED_WITH_ERRORS' or execution.status() == 'REJECTED') ? 'warn' : ((execution.status() == 'STARTED' or execution.status() == 'SCANNING_FILES' or execution.status() == 'PROCESSING_FILES') ? 'info' : 'error'))}" th:text="${execution.statusLabel()}">FINISHED</span></td>
+					<td th:text="${T(br.com.jorgemelo.nimbusfilemanager.common.util.DateTimeFormatUtils).human(execution.startedAt())}">2026</td>
+					<td class="path" th:text="${execution.sourcePath()}">path</td>
+					<td th:text="${execution.errors()}">0</td>
+					<td><a class="button secondary small" th:href="@{/app/executions/{id}(id=${execution.executionId()})}" th:text="#{common.open}">Abrir</a></td>
+				</tr>
+				<tr th:if="${executionsPage.content.isEmpty() and executionsPage.number == 0}">
+					<td colspan="8" th:text="#{dashboard.empty}">Nenhuma execução ainda.</td>
+				</tr>
+				</tbody>
+			</table>
+		</div>
+		<div class="table-toolbar" th:if="${executionsPage.totalElements > 0}">
+			<span th:text="#{dashboard.count(${executionsPage.totalElements})}">0 execuções</span>
+			<span class="muted" id="executionsLoadStatus"></span>
+		</div>
+		<div id="executionsSentinel" class="explorer-sentinel" aria-hidden="true"></div>
+	</div>
+</section>
+</div>
+<script th:src="@{/js/pages/dashboard.js}"></script>
+</body>
+</html>

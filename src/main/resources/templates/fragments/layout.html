@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="app(content, pageTitle)" class="shell" th:classappend="${sidebarCollapsed} ? 'sidebar-collapsed'"
+		th:attr="data-idle-timeout-minutes=${idleTimeoutMinutes},data-theme=${theme}">
+	<aside class="sidebar" th:classappend="${sidebarCollapsed} ? 'collapsed'">
+		<div class="brand">
+			<img th:src="@{/img/nimbus-file-manager-icon.png}" alt="">
+			<span>Nimbus File Manager</span>
+		</div>
+		<button type="button" class="sidebar-toggle" id="sidebarToggle" th:title="#{sidebar.collapse}" title="Contrair menu">
+			<i class="bi bi-chevron-left"></i>
+		</button>
+		<div th:if="${libraryConfigured}">
+			<div class="nav-group-label" th:text="#{nav.library}">Biblioteca</div>
+			<nav class="nav">
+				<a th:href="@{/app}" th:title="#{nav.dashboard}"><i class="bi bi-speedometer2"></i><span th:text="#{nav.dashboard}">Dashboard</span></a>
+				<a th:href="@{/app/timeline}" th:title="#{nav.timeline}"><i class="bi bi-calendar3"></i><span th:text="#{nav.timeline}">Timeline</span></a>
+				<a th:href="@{/app/map}" th:title="#{nav.map}"><i class="bi bi-geo-alt"></i><span th:text="#{nav.map}">Mapa</span></a>
+				<a th:if="${isAdmin}" th:href="@{/app/files}" th:title="#{nav.files}"><i class="bi bi-folder2-open"></i><span th:text="#{nav.files}">Arquivos</span></a>
+				<a th:if="${isAdmin}" th:href="@{/app/organization}" th:title="#{nav.organization}"><i class="bi bi-folder-symlink"></i><span th:text="#{nav.organization}">Organização</span></a>
+				<a th:if="${isAdmin}" th:href="@{/app/duplicates}" th:title="#{nav.duplicates}"><i class="bi bi-copy"></i><span th:text="#{nav.duplicates}">Duplicados</span></a>
+					<a th:if="${isAdmin}" th:href="@{/app/quarantine}" th:title="#{nav.quarantine}"><i class="bi bi-trash3"></i><span th:text="#{nav.quarantine}">Quarentena</span></a>
+					<a th:if="${isAdmin}" th:href="@{/app/statistics}" th:title="#{nav.statistics}"><i class="bi bi-bar-chart"></i><span th:text="#{nav.statistics}">Estatísticas</span></a>
+				<a th:href="${isAdmin} ? @{/app/settings} : @{/app/settings/preferences}" th:title="#{nav.settings}">
+					<i class="bi bi-gear"></i><span th:text="#{nav.settings}">Configurações</span>
+				</a>
+			</nav>
+			<div class="nav-group-label" th:if="${isAdmin}" th:text="#{nav.administration}">Administração</div>
+			<nav class="nav" th:if="${isAdmin}">
+				<a th:href="@{/app/users}" th:title="#{nav.users}"><i class="bi bi-people"></i><span th:text="#{nav.users}">Usuários</span></a>
+				<a th:href="@{/app/accesses}" th:title="#{nav.accesses}"><i class="bi bi-shield-lock"></i><span th:text="#{nav.accesses}">Acessos</span></a>
+			</nav>
+		</div>
+		<div class="sidebar-footer">
+			<a class="sidebar-footer-link" th:if="${isAdmin}" th:href="@{/swagger-ui.html}" th:title="#{nav.openapi}">
+				<i class="bi bi-braces"></i><span th:text="#{nav.openapi}">OpenAPI</span>
+			</a>
+			<div class="sidebar-profile" th:if="${currentUser != null}">
+				<span class="sidebar-profile-avatar" aria-hidden="true"
+						th:text="${#strings.toUpperCase(#strings.substring(currentUser.displayName,0,1))}">J</span>
+				<div class="sidebar-profile-info">
+					<span class="sidebar-profile-name" th:text="${currentUser.displayName}">Usuario</span>
+					<span class="sidebar-profile-links">
+						<a th:href="@{/app/account}" th:text="#{account.link}">Conta</a>
+						<span aria-hidden="true">·</span>
+						<a href="#" id="sidebarLogoutTrigger" th:text="#{action.logout}">Sair</a>
+					</span>
+				</div>
+			</div>
+			<form class="logout" id="logoutForm" th:action="@{/logout}" method="post">
+				<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+				<input type="hidden" name="reason" id="logoutReasonField" value="">
+				<button type="submit" th:if="${currentUser == null}" th:text="#{action.logout}">Sair</button>
+			</form>
+			<div class="version">v<span th:text="${appVersion}">0.0.0</span></div>
+		</div>
+	</aside>
+	<main class="main">
+		<div class="topbar">
+			<h1 class="title" th:text="${pageTitle}">Nimbus File Manager</h1>
+			<span class="version-pill">v<span th:text="${appVersion}">0.0.0</span></span>
+		</div>
+		<div class="watch-status" th:if="${inventoryWatch.configured()}"
+				th:classappend="${inventoryWatch.running()} ? 'running' : 'stopped'">
+			<span class="watch-status-dot" aria-hidden="true"></span>
+			<div>
+				<strong th:text="${inventoryWatch.running()} ? #{watch.active} : #{watch.stopped}">Monitoramento ativo</strong>
+				<span><span th:text="#{watch.folder}">Pasta monitorada:</span> <span class="path" th:text="${inventoryWatch.folder()}">C:\midia</span></span>
+				<small th:if="${inventoryWatch.lastReconciliation() != null}"><span th:text="#{watch.lastReconciliation}">Última reconciliação:</span> <span th:text="${#temporals.format(inventoryWatch.lastReconciliation(), 'dd/MM HH:mm')}">18/07 12:00</span> <span th:if="${inventoryWatch.lastReconciliationRepaired() > 0}" th:text="'(' + ${inventoryWatch.lastReconciliationRepaired()} + ')'">(3)</span></small>
+				<small th:if="${inventoryWatch.error() != null}" th:text="${inventoryWatch.error()}">Erro</small>
+			</div>
+		</div>
+		<a class="active-execution" id="activeExecution" th:if="${activeExecution != null}"
+				th:href="@{/app/executions/{id}(id=${activeExecution.executionId()})}"
+				th:attr="data-execution-id=${activeExecution.executionId()}">
+			<div class="active-execution-main">
+				<span class="active-execution-pulse" aria-hidden="true"></span>
+				<div class="active-execution-copy">
+					<strong id="activeExecutionTitle"
+							th:text="${activeExecution.executionType() == 'INVENTORY'} ? #{execution.inventory.running} : #{execution.organization.running}">Execução em andamento</strong>
+					<span class="active-execution-folder" id="activeExecutionFolder"
+							th:title="${activeExecution.sourcePath()}">
+						<i class="bi bi-folder2-open"></i>
+						<span th:text="#{execution.folder}">Pasta:</span>
+						<span class="path" th:text="${activeExecution.sourcePath()}">C:\midia</span>
+					</span>
+				</div>
+			</div>
+			<div class="active-execution-summary">
+				<span class="badge info" id="activeExecutionStatus" th:text="${activeExecution.statusLabel()}">PROCESSING_FILES</span>
+				<strong id="activeExecutionPercent"
+						th:text="${activeExecution.percentComplete() != null} ? ${activeExecution.percentComplete() + '%'} : #{execution.preparing}">0%</strong>
+			</div>
+			<div class="active-execution-progress" aria-hidden="true">
+				<span id="activeExecutionProgressFill"
+						th:style="|width: ${activeExecution.percentComplete() != null ? activeExecution.percentComplete() : 0}%|"></span>
+			</div>
+		</a>
+		<div th:replace="${content}"></div>
+	</main>
+	<div class="idle-modal-overlay" id="idleModalOverlay" hidden>
+		<div class="idle-modal" role="alertdialog" aria-modal="true" aria-labelledby="idleModalTitle">
+			<i class="bi bi-exclamation-triangle-fill idle-modal-icon"></i>
+			<h2 id="idleModalTitle" th:text="#{session.expiring.title}">Sessão prestes a expirar</h2>
+			<p><span th:text="#{session.expiring.body.before}">Você ficou inativo. Por inatividade, sua sessão será encerrada em</span>
+				<strong id="idleModalCountdown">60</strong> <span th:text="#{session.expiring.body.after}">segundos.</span></p>
+			<div class="actions">
+				<button type="button" id="idleModalContinue" th:text="#{session.stayConnected}">Continuar conectado</button>
+				<button type="button" class="secondary" id="idleModalLogout" th:text="#{session.logoutNow}">Sair agora</button>
+			</div>
+		</div>
+	</div>
+	<div id="mediaLightbox" class="lightbox" role="dialog" aria-modal="true" aria-labelledby="lightboxTitle">
+		<button type="button" class="lightbox-close" th:title="#{lightbox.close}" th:aria-label="#{lightbox.close}" title="Fechar" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+		<button type="button" class="lightbox-nav previous" th:aria-label="#{lightbox.previous}" aria-label="Mídia anterior"><i class="bi bi-chevron-left"></i></button>
+		<div class="lightbox-stage">
+			<img id="lightboxImage" alt="">
+			<video id="lightboxVideo" controls></video>
+			<iframe id="lightboxFrame" th:title="#{lightbox.preview}" title="Pré-visualização do arquivo"></iframe>
+			<audio id="lightboxAudio" controls></audio>
+		</div>
+		<aside class="lightbox-details" id="lightboxDetails">
+			<h2 id="lightboxTitle" th:text="#{lightbox.details}">Detalhes</h2>
+			<div id="lightboxMetadata" th:text="#{lightbox.loading}">Carregando…</div>
+		</aside>
+		<button type="button" class="lightbox-nav next" th:aria-label="#{lightbox.next}" aria-label="Próxima mídia"><i class="bi bi-chevron-right"></i></button>
+	</div>
+	<div th:replace="~{fragments/i18n-messages :: catalog}"></div>
+	<script th:src="@{/js/i18n.js}"></script>
+	<script th:src="@{/js/app.js}"></script>
+	<script th:src="@{/js/media-lightbox.js}"></script>
+	<script th:src="@{/js/forms.js}"></script>
+	<script th:src="@{/js/folder-picker.js}"></script>
+	<script th:src="@{/js/idle-timeout.js}"></script>
+	<script th:src="@{/js/execution-status.js}"></script>
+	<script th:src="@{/js/active-execution.js}"></script>
+</div>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.files}, 'files')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.files})}">
+<section class="files-page" id="explorerRoot"
+		th:attr="data-path=${explorer.path()},data-view=${explorer.viewMode()},data-size=${explorer.size()},data-sort=${sort},data-page=${explorer.page()},data-has-next=${explorer.hasNext()}">
+	<div class="panel section explorer-summary">
+		<div><span class="metric" th:text="#{files.folders}">Pastas</span><strong th:text="${explorer.folderCount()}">0</strong></div>
+		<div><span class="metric" th:text="#{category.files}">Arquivos</span><strong th:text="${explorer.fileCount()}">0</strong></div>
+		<div><span class="metric" th:text="#{files.inventoried}">Inventariados</span><strong th:text="${explorer.inventoriedCount()}">0</strong></div>
+		<div><span class="metric" th:text="#{files.missing}">Ausentes</span><strong th:text="${explorer.missingCount()}">0</strong></div>
+	</div>
+
+	<nav class="panel explorer-breadcrumb" id="explorerBreadcrumb" th:aria-label="#{files.breadcrumbAria}" aria-label="Caminho da pasta"></nav>
+
+	<div class="panel explorer-nav">
+		<div class="explorer-nav-buttons">
+			<button type="button" id="explorerBack" class="icon-button" th:title="#{action.back}" title="Voltar">
+				<i class="bi bi-arrow-left"></i>
+			</button>
+			<a th:if="${explorer.parentPath() != null}" class="icon-button" th:title="#{files.upOneLevel}"
+					th:href="@{/app/files(path=${explorer.parentPath()}, view=${explorer.viewMode()}, size=${explorer.size()}, sort=${sort})}">
+				<i class="bi bi-arrow-up"></i>
+			</a>
+			<span th:unless="${explorer.parentPath() != null}" class="icon-button disabled" th:title="#{files.upOneLevel}">
+				<i class="bi bi-arrow-up"></i>
+			</span>
+			<button type="button" id="explorerRefresh" class="icon-button" th:title="#{files.refresh}" title="Atualizar arquivos"
+					th:aria-label="#{files.refresh}" aria-label="Atualizar arquivos">
+				<i class="bi bi-arrow-clockwise"></i>
+			</button>
+		</div>
+
+		<form class="explorer-drive" th:action="@{/app/files}" method="get" th:if="${drives != null and drives.size() > 1}">
+			<input type="hidden" name="view" th:value="${explorer.viewMode()}">
+			<input type="hidden" name="size" th:value="${explorer.size()}">
+			<input type="hidden" name="sort" th:value="${sort}">
+			<select name="path" onchange="this.form.submit()" th:title="#{files.changeDrive}" title="Trocar de unidade">
+				<option th:each="drive : ${drives}" th:value="${drive}" th:text="${drive}"
+						th:selected="${#strings.startsWith(#strings.toUpperCase(explorer.path()), #strings.toUpperCase(drive))}">C:\</option>
+			</select>
+		</form>
+
+		<form class="explorer-address" th:action="@{/app/files}" method="get">
+			<i class="bi bi-folder2-open"></i>
+			<input name="path" th:value="${explorer.path()}" class="explorer-address-input"
+					placeholder="C:/nimbus-file-manager/workspace/temp" autocomplete="off" spellcheck="false"
+					data-recent-values="files-address">
+			<input type="hidden" name="view" th:value="${explorer.viewMode()}">
+			<input type="hidden" name="size" th:value="${explorer.size()}">
+			<input type="hidden" name="sort" th:value="${sort}">
+			<button type="submit" th:title="#{files.goToFolder}" title="Ir para esta pasta"><i class="bi bi-arrow-right-short"></i></button>
+		</form>
+
+		<div class="explorer-view-switch">
+			<a th:classappend="${explorer.viewMode() == 'details'} ? 'active'" th:title="#{view.details}" title="Detalhes"
+					th:href="@{/app/files(path=${explorer.path()}, view='details', size=${explorer.size()}, sort=${sort})}"><i class="bi bi-list-ul"></i></a>
+			<a th:classappend="${explorer.viewMode() == 'small'} ? 'active'" th:title="#{view.small}" title="Pequeno"
+					th:href="@{/app/files(path=${explorer.path()}, view='small', size=${explorer.size()}, sort=${sort})}"><i class="bi bi-grid-3x3-gap"></i></a>
+			<a th:classappend="${explorer.viewMode() == 'large'} ? 'active'" th:title="#{view.large}" title="Grande"
+					th:href="@{/app/files(path=${explorer.path()}, view='large', size=${explorer.size()}, sort=${sort})}"><i class="bi bi-grid"></i></a>
+			<a th:classappend="${explorer.viewMode() == 'xlarge'} ? 'active'" th:title="#{view.xlarge}" title="Super grande"
+					th:href="@{/app/files(path=${explorer.path()}, view='xlarge', size=${explorer.size()}, sort=${sort})}"><i class="bi bi-square"></i></a>
+		</div>
+
+		<form class="explorer-size" th:action="@{/app/files}" method="get">
+			<input type="hidden" name="path" th:value="${explorer.path()}">
+			<input type="hidden" name="view" th:value="${explorer.viewMode()}">
+			<input type="hidden" name="sort" th:value="${sort}">
+			<select name="size" onchange="this.form.submit()" th:title="#{files.itemsPerPage}" title="Itens por pagina">
+				<option th:each="option : ${sizes}" th:value="${option}" th:text="#{files.itemsOption(${option})}"
+						th:selected="${option == explorer.size()}">50 itens</option>
+			</select>
+		</form>
+		<form class="explorer-size" th:action="@{/app/files}" method="get">
+			<input type="hidden" name="path" th:value="${explorer.path()}">
+			<input type="hidden" name="view" th:value="${explorer.viewMode()}">
+			<input type="hidden" name="size" th:value="${explorer.size()}">
+			<select name="sort" onchange="this.form.submit()" th:title="#{files.sort}" title="Ordenar">
+				<option th:each="option : ${sortOptions}" th:value="${option.value()}" th:text="${#messages.msg('enum.fileSortOption.' + option.name())}"
+						th:selected="${sort == option.value()}"></option>
+			</select>
+		</form>
+	</div>
+
+	<div class="alert error section" th:if="${!explorer.exists()}" th:text="#{files.notExist}">
+		A pasta ou arquivo não existe no disco.
+	</div>
+
+	<div class="alert error section" th:if="${explorer.exists() and explorer.accessDenied()}" th:text="#{files.accessDenied}">
+		Sem permissão para listar esta pasta. Tente abrir com outro usuário ou verifique as permissões da pasta.
+	</div>
+
+	<div class="panel section" th:if="${explorer.viewMode() == 'details'}">
+		<div class="table-wrap">
+		<table class="table explorer-details">
+			<thead>
+			<tr>
+				<th th:text="#{common.name}">Nome</th>
+				<th th:text="#{common.type}">Tipo</th>
+				<th th:text="#{common.size}">Tamanho</th>
+				<th th:text="#{files.modified}">Modificado</th>
+				<th th:text="#{common.status}">Status</th>
+			</tr>
+			</thead>
+			<tbody id="explorerRows" th:fragment="rows">
+			<tr th:each="item : ${explorer.entries()}" th:classappend="${item.missing()} ? 'missing'">
+				<td class="media-cell" th:title="${item.path()}">
+					<a th:if="${item.directory()}" class="media-card-open"
+							th:href="@{/app/files(path=${item.path()}, view=${explorer.viewMode()}, size=${explorer.size()}, sort=${sort})}">
+						<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+						<span class="media-card-name" th:text="${item.name()}">folder</span>
+					</a>
+					<!-- th:replace outranks th:unless on the same tag, so the condition must live on an
+					     outer block; otherwise the fragment renders even for directories (duplicating them). -->
+					<th:block th:unless="${item.directory()}">
+						<th:block th:replace="~{fragments/media-cards :: card(${item}, 320)}"></th:block>
+					</th:block>
+				</td>
+				<td th:text="${item.fileType()}">FILE</td>
+				<td th:text="${item.sizeBytes() == null ? '-' : item.sizeBytes()}">0</td>
+				<td th:text="${T(br.com.jorgemelo.nimbusfilemanager.common.util.DateTimeFormatUtils).human(item.modifiedAt())}">-</td>
+				<td>
+					<span class="badge warn" th:if="${item.missing()}" th:text="#{files.status.missing}">Ausente</span>
+					<span class="badge ok" th:if="${!item.missing() and !item.directory() and item.registered()}" th:text="#{files.status.cataloged}">Inventariado</span>
+					<span class="badge warn" th:if="${!item.missing() and !item.directory() and !item.registered()}" th:text="#{files.status.notCataloged}">Não inventariado</span>
+					<span class="muted" th:if="${!item.missing() and item.directory()}">-</span>
+				</td>
+			</tr>
+			</tbody>
+		</table>
+		</div>
+	</div>
+
+	<div class="panel section" th:unless="${explorer.viewMode() == 'details'}"
+			th:with="thumbWidth=${explorer.viewMode() == 'xlarge' or explorer.viewMode() == 'large' ? 640 : 320}">
+		<div id="explorerTiles" th:class="|media-grid ${explorer.viewMode()}|" th:fragment="tiles">
+			<div class="media-tile" th:each="item : ${explorer.entries()}" th:classappend="${item.missing()} ? 'missing'">
+				<span th:if="${!item.missing() and !item.directory()}" class="inventory-dot"
+						th:classappend="${item.registered()} ? 'ok' : 'warn'"
+						th:title="${item.registered()} ? #{files.status.cataloged} : #{files.status.notCataloged}"></span>
+				<a th:if="${item.directory()}" class="media-card-open"
+						th:href="@{/app/files(path=${item.path()}, view=${explorer.viewMode()}, size=${explorer.size()}, sort=${sort})}"
+						th:title="${item.name()}">
+					<i class="media-symbol bi" th:classappend="${item.iconClass()}" th:title="${#messages.msg(item.iconLabelKey())}"></i>
+					<span class="media-card-name" th:text="${item.name()}">folder</span>
+				</a>
+				<!-- th:replace outranks th:unless on the same tag, so the condition must live on an
+				     outer block; otherwise the fragment renders even for directories (duplicating them). -->
+				<th:block th:unless="${item.directory()}">
+					<th:block th:replace="~{fragments/media-cards :: card(${item}, ${thumbWidth})}"></th:block>
+				</th:block>
+			</div>
+		</div>
+		<p class="muted" th:if="${explorer.entries().isEmpty() and !explorer.accessDenied()}" th:text="#{files.empty}">Nenhum item nesta pasta.</p>
+	</div>
+
+	<div class="panel section table-toolbar explorer-items-toolbar" th:if="${explorer.totalItems() > 0}">
+		<span th:text="#{files.itemCount(${explorer.totalItems()})}">0 itens</span>
+		<span class="muted explorer-load-status" id="explorerLoadStatus"></span>
+	</div>
+	<div id="explorerSentinel" class="explorer-sentinel" aria-hidden="true"></div>
+
+</section>
+</div>
+<script th:src="@{/js/pages/files.js}"></script>
+</body>
+</html>

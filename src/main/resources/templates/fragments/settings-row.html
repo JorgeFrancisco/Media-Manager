@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	Row template shared by every category group in app/settings.html (th:replace). Lives in its own
+	fragments/*.html file - like fragments/layout.html and fragments/head.html - because it is never
+	a controller view name, so Thymeleaf never renders it top-to-bottom on its own; it only ever
+	gets processed when explicitly selected via ~{fragments/settings-row :: settingRow(setting)},
+	with "setting" supplied as a real fragment parameter. Defining it as a plain sibling <div> inside
+	settings.html itself (the earlier approach) broke: that div still sits in settings.html's normal
+	document flow, so Thymeleaf evaluated ${setting.description} in place too - with no th:each/
+	fragment-call around it there, "setting" was null and the whole page failed to render.
+-->
+<div th:fragment="settingRow(setting)" class="setting-row">
+	<div class="setting-row-label">
+		<strong th:text="${#messages.msg('setting.' + setting.settingKey)}">Descrição</strong>
+		<code th:text="${setting.settingKey}">nimbus-file-manager.api.max-page-size</code>
+	</div>
+	<form class="setting-row-control" th:action="@{/app/settings}" method="post">
+		<input type="hidden" name="key" th:value="${setting.settingKey}">
+		<input type="hidden" name="confirmLibraryChange" value="false"
+				th:if="${setting.settingKey == 'nimbus-file-manager.inventory.watch-folder'}">
+		<select name="value" th:if="${setting.valueType == 'BOOLEAN'}">
+			<option value="true" th:selected="${setting.settingValue == 'true'}" th:text="#{common.yes}">Sim</option>
+			<option value="false" th:selected="${setting.settingValue == 'false'}" th:text="#{common.no}">Não</option>
+		</select>
+		<select name="value" th:if="${setting.settingKey == 'nimbus-file-manager.timezone'}">
+			<option th:if="${#lists.isEmpty(timezones.?[id == setting.settingValue])}" th:value="${setting.settingValue}"
+					th:text="${setting.settingValue}" selected></option>
+			<option th:each="tz : ${timezones}" th:value="${tz.id}" th:text="${tz.label}"
+					th:selected="${tz.id == setting.settingValue}">São Paulo (Brasília)</option>
+		</select>
+		<input type="text" name="value" th:value="${setting.settingValue}"
+				th:unless="${setting.valueType == 'BOOLEAN' or setting.settingKey == 'nimbus-file-manager.timezone'}"
+				th:id="${setting.settingKey == 'nimbus-file-manager.inventory.watch-folder'} ? 'watchFolderInput' : (${setting.settingKey == 'nimbus-file-manager.duplicates.trash-folder'} ? 'trashFolderInput' : null)"
+				th:readonly="${setting.settingKey == 'nimbus-file-manager.inventory.watch-folder'}"
+				th:attr="data-original-value=${setting.settingKey == 'nimbus-file-manager.inventory.watch-folder' ? setting.settingValue : null}">
+		<button type="button" class="secondary folder-picker-open" data-target="#watchFolderInput"
+				th:if="${setting.settingKey == 'nimbus-file-manager.inventory.watch-folder'}"
+				th:disabled="${inventoryRunning}"><i class="bi bi-folder2" aria-hidden="true"></i> <span th:text="#{quarantine.origin.chooseFolder}">Escolher pasta</span></button>
+		<button type="button" class="secondary folder-picker-open" data-target="#trashFolderInput"
+				th:if="${setting.settingKey == 'nimbus-file-manager.duplicates.trash-folder'}"><i class="bi bi-folder2" aria-hidden="true"></i> <span th:text="#{quarantine.origin.chooseFolder}">Escolher pasta</span></button>
+		<button type="submit" th:disabled="${inventoryRunning}" th:text="#{action.save}">Salvar</button>
+	</form>
+	<span class="setting-row-meta muted"
+			th:text="#{settings.updatedByAt(${setting.updatedByUsername ?: setting.createdByUsername}, ${#temporals.format(setting.updatedAt, 'dd/MM/yyyy HH:mm')})}">meta</span>
+</div>
+</body>
+</html>

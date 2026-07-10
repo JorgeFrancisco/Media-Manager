@@ -1,0 +1,9 @@
+.app-banner {
+	border-radius: 8px;
+	display: block;
+	margin-bottom: 16px;
+	max-height: 190px;
+	object-fit: cover;
+	object-position: center;
+	width: 100%;
+}

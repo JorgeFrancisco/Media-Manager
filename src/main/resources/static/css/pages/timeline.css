@@ -1,0 +1,62 @@
+.timeline-page { --timeline-axis: 26px; --timeline-sticky-offset: 24px; --timeline-toolbar-height: 86px; max-width: 1800px; margin: 24px auto 0; }
+/* The sticky toolbar needs a background "curtain" so content scrolling up vanishes behind
+   it, but a tall upward shadow used to paint over the layout's "Monitoramento ativo" /
+   active-execution banner rendered just above the page. Keep it just tall enough to cover
+   the sticky gap; the page margin above keeps it off the banner. */
+.timeline-toolbar { align-items: center; box-shadow: 0 -24px 0 0 var(--bg); display: flex; justify-content: space-between; gap: 24px; padding: 16px 20px; position: sticky; top: var(--timeline-sticky-offset); z-index: 10; }
+.timeline-toolbar h1 { margin: 0 0 3px; }
+.timeline-toolbar p { margin: 0; }
+.timeline-filter { align-items: center; display: flex; gap: 8px; white-space: nowrap; }
+.timeline-filter select { min-width: 170px; }
+.timeline-filters { align-items: center; display: flex; flex-wrap: wrap; gap: 16px; }
+.timeline-status, .timeline-empty { margin-top: 16px; padding: 32px; text-align: center; }
+/* Geo notice: had no styles of its own (only .panel), so its icon/text/actions were cramped
+   and the dismiss button lost contrast in dark mode. Give it a proper row layout and readable
+   action colours in both themes. */
+.geo-notice { align-items: center; display: flex; gap: 14px; margin-top: 16px; }
+.geo-notice[hidden] { display: none; }
+.geo-notice > .bi { color: var(--accent); flex: 0 0 auto; font-size: 22px; }
+.geo-notice-text { display: grid; gap: 2px; min-width: 0; }
+.geo-notice-actions { align-items: center; display: flex; gap: 12px; margin-left: auto; white-space: nowrap; }
+.timeline-body { align-items: start; display: grid; gap: 28px; grid-template-columns: 190px minmax(0, 1fr); margin-top: 16px; }
+.timeline-stream { min-width: 0; }
+.timeline-navigator { max-height: calc(100vh - 120px); overflow: auto; padding: 14px; position: sticky; top: calc(var(--timeline-sticky-offset) + var(--timeline-toolbar-height) + 12px); }
+.timeline-navigator > strong { display: block; margin-bottom: 10px; }
+.timeline-nav-all { align-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--text); cursor: pointer; display: flex; font-weight: 600; justify-content: space-between; margin-bottom: 6px; padding: 7px 6px; text-align: left; width: 100%; }
+.timeline-nav-all:hover, .timeline-nav-all:focus-visible { background: var(--accent-soft); }
+.timeline-nav-all.active, .timeline-nav-month.active { background: var(--accent-soft-hover); box-shadow: inset 3px 0 0 var(--accent); color: var(--accent-strong); font-weight: 700; }
+.timeline-nav-all.active .muted, .timeline-nav-month.active .muted { color: var(--accent-strong); }
+.timeline-nav-year summary { align-items: center; cursor: pointer; display: flex; font-weight: 700; justify-content: space-between; padding: 7px 2px; }
+.timeline-nav-months { display: grid; padding: 0 0 5px 8px; }
+.timeline-nav-month { align-items: center; background: transparent; border: 0; color: var(--text); cursor: pointer; display: flex; justify-content: space-between; padding: 5px 6px; text-align: left; text-transform: capitalize; }
+.timeline-nav-month:hover, .timeline-nav-month:focus-visible { background: var(--accent-soft); border-radius: 4px; }
+.timeline-nav-month.active { border-radius: 4px; }
+.timeline-nav-undated { border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; margin-top: 8px; padding-top: 8px; }
+.timeline-empty i { color: var(--muted); font-size: 40px; }
+.timeline-content { padding: 8px 0 40px; position: relative; }
+.timeline-content::before { background: var(--line); bottom: 28px; content: ""; left: var(--timeline-axis); position: absolute; top: 38px; transform: translateX(-50%); width: 2px; }
+.timeline-year { align-items: center; border-top: 1px solid var(--line); display: flex; font-size: 27px; gap: 8px; margin: 34px 0 8px; padding: 16px 0 0 52px; position: relative; }
+.timeline-content > .timeline-year:first-child { border-top: 0; margin-top: 8px; }
+.timeline-year::before { background: var(--bg); border: 3px solid var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px var(--bg); content: ""; height: 13px; left: var(--timeline-axis); position: absolute; transform: translateX(-50%); width: 13px; }
+.timeline-year.active::before { background: var(--teal); border-color: var(--bg); box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--bg); }
+.timeline-year::after { color: var(--muted); content: "⌄"; font-size: 18px; }
+.timeline-month { color: var(--teal); font-size: 16px; margin: 18px 0 8px 52px; text-transform: capitalize; }
+.timeline-day { align-items: start; display: grid; gap: 20px; grid-template-columns: 110px minmax(0, 1fr); margin-bottom: 24px; padding-left: 52px; position: relative; }
+.timeline-day::before { background: var(--bg); border: 2px solid var(--muted); border-radius: 50%; box-shadow: 0 0 0 4px var(--bg); content: ""; height: 12px; left: var(--timeline-axis); position: absolute; top: 19px; transform: translateX(-50%); width: 12px; }
+.timeline-day-heading { align-items: flex-start; align-self: start; background: var(--bg); display: flex; gap: 8px; padding: 10px 0; position: sticky; top: calc(var(--timeline-sticky-offset) + var(--timeline-toolbar-height) + 8px); z-index: 6; }
+.timeline-day-number { font-size: 27px; line-height: 1; }
+.timeline-day-details { display: grid; gap: 1px; min-width: 0; }
+.timeline-day-details span { font-size: 10px; white-space: nowrap; }
+.timeline-day-weekday { font-weight: 700; text-transform: uppercase; }
+.timeline-grid { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 8px; }
+.timeline-card { aspect-ratio: 4 / 3; background: var(--bg-subtle); border: 0; border-radius: 7px; cursor: pointer; flex: 0 0 160px; min-width: 0; overflow: hidden; padding: 0; position: relative; }
+.timeline-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.timeline-thumbnail { height: 100%; object-fit: cover; width: 100%; }
+.timeline-card.thumbnail-error::after { align-items: center; color: var(--muted); content: "Miniatura indisponível"; display: flex; inset: 0; justify-content: center; padding: 10px; position: absolute; text-align: center; }
+.timeline-card.thumbnail-error img { display: none; }
+.timeline-video-badge { align-items: center; background: rgba(0, 0, 0, .72); border-radius: 4px; bottom: 6px; color: #fff; display: flex; font-size: 12px; gap: 2px; padding: 3px 6px; position: absolute; right: 6px; }
+.timeline-location-badge { background: rgba(2, 10, 23, .78); border-radius: 4px; bottom: 6px; color: #fff; font-size: 11px; left: 6px; line-height: 1.2; max-width: calc(100% - 12px); overflow: hidden; padding: 3px 6px; pointer-events: none; position: absolute; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-card:has(.timeline-video-badge) .timeline-location-badge { max-width: calc(100% - 74px); }
+.timeline-sentinel { height: 1px; }
+.timeline-load-more { min-height: 24px; padding: 8px; text-align: center; }
+@media (max-width: 700px) { .timeline-page { --timeline-axis: 18px; --timeline-sticky-offset: 0px; } .timeline-toolbar { align-items: stretch; box-shadow: none; flex-direction: column; position: static; } .timeline-filter { justify-content: space-between; } .timeline-body { display: block; } .timeline-navigator { margin-top: 12px; max-height: none; position: static; } .timeline-nav-year { display: inline-block; margin-right: 10px; vertical-align: top; } .timeline-day { gap: 8px; grid-template-columns: 72px minmax(0, 1fr); padding-left: 38px; } .timeline-year, .timeline-month { margin-left: 0; padding-left: 38px; } .timeline-day-heading { top: 0; } .timeline-day-details span { white-space: normal; } .timeline-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .timeline-card { flex-basis: auto; width: 100%; } }

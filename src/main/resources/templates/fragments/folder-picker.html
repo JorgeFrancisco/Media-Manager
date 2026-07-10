@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	Reusable folder-picker dialog. Included once per page via
+	~{fragments/folder-picker :: folderPicker}. Driven by js/folder-picker.js,
+	which binds every .folder-picker-open button (each pointing at its target
+	input through data-target) to this single shared dialog. Backend:
+	GET /app/settings/folders (FolderBrowserService).
+-->
+<dialog th:fragment="folderPicker" id="folderPicker" class="folder-picker" aria-labelledby="folderPickerTitle">
+	<div class="folder-picker-header">
+		<div>
+			<h2 id="folderPickerTitle" th:text="#{folderPicker.title}">Escolher pasta</h2>
+			<p class="muted" th:text="#{folderPicker.description}">Selecione uma pasta deste computador.</p>
+		</div>
+		<button type="button" class="secondary folder-picker-close" aria-label="Fechar" th:aria-label="#{folderPicker.close}"><i class="bi bi-x-lg"></i></button>
+	</div>
+	<div class="folder-picker-path" id="folderPickerPath" th:text="#{folderPicker.thisComputer}">Este computador</div>
+	<div class="folder-picker-list" id="folderPickerList" role="listbox"></div>
+	<p class="alert error" id="folderPickerError" hidden></p>
+	<div class="actions folder-picker-actions">
+		<button type="button" class="secondary" id="folderPickerUp"><i class="bi bi-arrow-up"></i> <span th:text="#{folderPicker.up}">Subir</span></button>
+		<button type="button" id="folderPickerChoose" th:text="#{folderPicker.choose}">Selecionar esta pasta</button>
+	</div>
+</dialog>
+</body>
+</html>

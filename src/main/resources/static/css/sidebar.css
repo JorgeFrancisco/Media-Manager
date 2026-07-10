@@ -1,0 +1,303 @@
+/*
+ * The sidebar: brand mark, navigation, logout, version footer, collapse toggle, and the
+ * collapsed/expanded states. Split out of layout.css since it's a self-contained feature with a
+ * lot of its own rules; layout.css keeps only the grid/topbar/main shell around it.
+ */
+
+/*
+ * .shell caps its single grid row at 100vh (see layout.css), so this fills exactly the viewport
+ * height instead of stretching to match .main's content - that's what keeps the profile/logout/
+ * version footer reachable without scrolling all the way down a tall page (e.g. Arquivos/
+ * Organizacao with lots of folders); .main scrolls internally instead. overflow-y is just a safety
+ * net in case the nav list itself ever grows past 100vh.
+ */
+.sidebar {
+	background: linear-gradient(180deg, var(--sidebar), #123b6d);
+	color: #fff;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow-y: auto;
+	padding: 22px 18px;
+	position: relative;
+}
+
+.brand {
+	align-items: center;
+	display: flex;
+	font-size: 20px;
+	font-weight: 700;
+	gap: 12px;
+	margin-bottom: 26px;
+}
+
+.brand img {
+	aspect-ratio: 1;
+	background: rgba(255, 255, 255, 0.92);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 10px;
+	display: block;
+	object-fit: cover;
+	padding: 4px;
+	width: 48px;
+}
+
+.brand span {
+	display: block;
+}
+
+.nav {
+	display: grid;
+	gap: 6px;
+	margin-bottom: 14px;
+}
+
+.nav a,
+.logout button {
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: #d7deea;
+	cursor: pointer;
+	display: block;
+	font: inherit;
+	padding: 10px 12px;
+	text-align: left;
+	width: 100%;
+}
+
+.nav a:hover,
+.nav a.active,
+.logout button:hover {
+	background: var(--sidebar-hover);
+	color: #fff;
+}
+
+.nav a.active {
+	box-shadow: inset 3px 0 0 var(--teal);
+}
+
+/*
+ * Splits the flat nav list into "Biblioteca" (day-to-day) and "Administracao" (Usuarios, Acessos,
+ * Configuracoes - only rendered for isAdmin, see AppViewModelAdvice/layout.html) so admin-only
+ * tooling doesn't sit at the same level as the pages every user needs.
+ */
+.nav-group-label {
+	color: #a6b6d2;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	padding: 0 12px 6px;
+	text-transform: uppercase;
+}
+
+.sidebar-footer {
+	margin-top: auto;
+	padding-top: 16px;
+}
+
+.sidebar-footer-link {
+	align-items: center;
+	color: #98a2b3;
+	display: flex;
+	font-size: 12px;
+	gap: 10px;
+	padding: 6px 12px 14px;
+}
+
+.sidebar-footer-link:hover {
+	color: #fff;
+}
+
+.sidebar-footer-link i {
+	font-size: 14px;
+	min-width: 18px;
+	text-align: center;
+}
+
+/*
+ * Replaces the old bare "Conta" nav link: a small profile card (avatar initial, display name,
+ * Conta/Sair) pinned above the version footer, matching the account-menu pattern most apps use
+ * instead of mixing personal account access into the main navigation.
+ */
+.sidebar-profile {
+	align-items: center;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+	display: flex;
+	gap: 10px;
+	padding: 14px 12px 6px;
+}
+
+.sidebar-profile-avatar {
+	align-items: center;
+	background: var(--teal);
+	border-radius: 50%;
+	color: #04342c;
+	display: flex;
+	flex: 0 0 32px;
+	font-size: 13px;
+	font-weight: 700;
+	height: 32px;
+	justify-content: center;
+	width: 32px;
+}
+
+.sidebar-profile-info {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+}
+
+.sidebar-profile-name {
+	color: #fff;
+	font-size: 13px;
+	font-weight: 700;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sidebar-profile-links {
+	color: #98a2b3;
+	display: flex;
+	font-size: 12px;
+	gap: 6px;
+}
+
+.sidebar-profile-links a {
+	color: #98a2b3;
+}
+
+.sidebar-profile-links a:hover {
+	color: #fff;
+}
+
+.logout button {
+	margin-top: 6px;
+}
+
+.version {
+	color: #98a2b3;
+	font-size: 12px;
+	margin-top: 12px;
+	padding: 0 12px;
+}
+
+.sidebar-toggle {
+	align-items: center;
+	background: var(--sidebar-hover);
+	border: 0;
+	border-radius: 6px 0 0 6px;
+	color: #fff;
+	cursor: pointer;
+	display: flex;
+	font-size: 12px;
+	height: 42px;
+	justify-content: center;
+	padding: 0;
+	position: absolute;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 12px;
+	z-index: 2;
+}
+
+.sidebar.collapsed {
+	width: 72px;
+}
+
+.shell.sidebar-collapsed {
+	grid-template-columns: 72px 1fr;
+}
+
+.sidebar .nav a {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+}
+
+.sidebar .nav a i {
+	font-size: 16px;
+	min-width: 18px;
+	text-align: center;
+}
+
+/*
+ * Cada item do menu tem sua propria cor, ecoando a paleta de tipos de arquivo usada em
+ * pages/files.css (.file-symbol), so que ajustada para contraste sobre o fundo navy do sidebar.
+ */
+.sidebar .nav a .bi-speedometer2 { color: #38bdf8; }
+.sidebar .nav a .bi-calendar3 { color: #c084fc; }
+.sidebar .nav a .bi-folder2-open { color: #fbbf24; }
+.sidebar .nav a .bi-folder-symlink { color: #34d399; }
+.sidebar .nav a .bi-copy { color: #2dd4bf; }
+.sidebar .nav a .bi-bar-chart { color: #f472b6; }
+.sidebar .nav a .bi-gear { color: #94a3b8; }
+.sidebar .nav a .bi-people { color: #a5b4fc; }
+.sidebar .nav a .bi-shield-lock { color: #f87171; }
+.sidebar .nav a .bi-braces { color: #fb923c; }
+
+.sidebar.collapsed .logout button,
+.sidebar.collapsed .version {
+	font-size: 0;
+	padding-left: 0;
+	padding-right: 0;
+	text-align: center;
+}
+
+.sidebar.collapsed .nav-group-label,
+.sidebar.collapsed .sidebar-footer-link span,
+.sidebar.collapsed .sidebar-profile-info {
+	display: none;
+}
+
+.sidebar.collapsed .sidebar-footer-link {
+	justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-profile {
+	justify-content: center;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.sidebar.collapsed .brand {
+	gap: 0;
+	justify-content: center;
+}
+
+.sidebar.collapsed .brand span {
+	display: none;
+}
+
+.sidebar.collapsed .brand img {
+	width: 100%;
+}
+
+.sidebar.collapsed .sidebar-toggle i {
+	transform: rotate(180deg);
+}
+
+.sidebar.collapsed .nav a {
+	font-size: 0;
+	justify-content: center;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+.sidebar.collapsed .nav a i {
+	font-size: 16px;
+}
+
+.sidebar.collapsed .nav a span {
+	display: none;
+}
+
+@media (max-width: 900px) {
+	.sidebar {
+		height: auto;
+		overflow-y: visible;
+		position: static;
+	}
+}

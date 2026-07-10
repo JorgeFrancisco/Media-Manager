@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Nimbus File Manager</title>
+	<link rel="icon" th:href="@{/favicon.ico}">
+	<link rel="stylesheet" th:href="@{/css/base.css}">
+	<link rel="stylesheet" th:href="@{/css/components.css}">
+	<link rel="stylesheet" th:href="@{/css/pages/login.css}">
+</head>
+<body class="login-page">
+	<div class="login-shell">
+		<form class="login-panel" th:action="@{/login}" method="post">
+			<div class="login-header">
+				<h1 class="title">Nimbus File Manager</h1>
+				<span class="version-pill">v<span th:text="${appVersion}">0.0.0</span></span>
+			</div>
+			<p class="muted" th:text="#{login.subtitle}">Entre com sua conta para continuar</p>
+
+			<div class="alert error" th:if="${param.error}" th:text="#{login.error.credentials}">E-mail ou senha inválidos.</div>
+			<div class="alert error" th:if="${param.locked}" th:text="#{login.error.locked}">Conta temporariamente bloqueada após muitas tentativas inválidas. Aguarde alguns minutos e tente novamente.</div>
+			<div class="alert error" th:if="${param.disabled}" th:text="#{login.error.disabled}">Sua conta ainda não foi confirmada.</div>
+			<div class="alert ok" th:if="${param.logout}" th:text="#{login.logout}">Sessão encerrada.</div>
+			<div class="alert ok" th:if="${param.idle}" th:text="#{login.idle}">Sessão encerrada por inatividade.</div>
+			<div class="alert ok" th:if="${registered}" th:text="#{login.registered}">Cadastro recebido. Confirme seu e-mail antes de entrar.</div>
+			<div class="alert ok" th:if="${confirmed}" th:text="#{login.confirmed}">Conta confirmada. Já pode entrar.</div>
+			<div class="alert error" th:if="${confirmError}" th:text="${confirmError}">Erro ao confirmar.</div>
+
+			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+			<label><span th:text="#{common.email}">E-mail</span>
+				<input name="username" type="email" autocomplete="username" autofocus>
+			</label>
+			<label class="section"><span th:text="#{common.password}">Senha</span>
+				<input name="password" type="password" autocomplete="current-password">
+			</label>
+
+			<button type="submit" class="btn-primary" th:text="#{login.submit}">Entrar</button>
+
+			<div class="divider"><span th:text="#{login.or}">ou</span></div>
+
+			<a class="btn-google" th:if="${googleLoginAvailable}" th:href="@{/oauth2/authorization/google}">
+				<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+					<path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"></path>
+					<path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"></path>
+					<path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"></path>
+					<path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.581C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 6.707c.708-2.127 2.692-3.711 5.036-3.711z"></path>
+				</svg>
+				<span th:text="#{login.google}">Continuar com Google</span>
+			</a>
+			<span class="btn-google disabled" th:unless="${googleLoginAvailable}" th:title="#{login.google.disabledTitle}">
+				<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+					<path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"></path>
+					<path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"></path>
+					<path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"></path>
+					<path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.581C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 6.707c.708-2.127 2.692-3.711 5.036-3.711z"></path>
+				</svg>
+				<span th:text="#{login.google}">Continuar com Google</span>
+			</span>
+
+			<div class="login-links">
+				<a th:href="@{/change-password}" th:text="#{login.changePassword}">Trocar senha</a>
+				<span class="dot">&middot;</span>
+				<a th:href="@{/register}" th:text="#{login.register}">Criar conta</a>
+			</div>
+		</form>
+		<div class="login-art" aria-hidden="true"></div>
+	</div>
+</body>
+</html>

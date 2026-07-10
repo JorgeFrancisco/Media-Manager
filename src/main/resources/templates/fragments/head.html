@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<!--
+	Single source of truth for what every app/* page needs in <head>: charset/viewport, favicon,
+	the icon font used by fragments/layout.html's sidebar, and the CSS common to the whole app
+	shell (base + components + layout). Pass pageCss to also link a page-specific stylesheet from
+	css/pages/. This exists so pages can't silently drift out of sync with each other (that's how
+	the sidebar icons ended up missing on every page except Arquivos before this fragment existed).
+-->
+<head th:fragment="common(title, pageCss)">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title th:text="${title}">Nimbus File Manager</title>
+	<link rel="icon" th:href="@{/favicon.ico}">
+	<link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/1.13.1/font/bootstrap-icons.css}">
+	<link rel="stylesheet" th:href="@{/css/base.css}">
+	<link rel="stylesheet" th:href="@{/css/components.css}">
+	<link rel="stylesheet" th:href="@{/css/layout.css}">
+	<link rel="stylesheet" th:href="@{/css/sidebar.css}">
+	<link rel="stylesheet" th:href="@{/css/media-lightbox.css}">
+	<link rel="stylesheet" th:if="${pageCss != null}" th:href="@{'/css/pages/' + ${pageCss} + '.css'}">
+</head>
+<body></body>
+</html>

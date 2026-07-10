@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common(#{nav.accesses}, null)}"></head>
+<body>
+<div th:replace="~{fragments/layout :: app(~{::section}, #{nav.accesses})}">
+	<section class="stack">
+		<form class="panel" th:action="@{/app/accesses}" method="get">
+			<label><span th:text="#{common.email}">E-mail</span>
+				<input type="email" name="email" placeholder="admin@nimbus-file-manager.local" th:value="${email}" autofocus>
+			</label>
+			<div class="actions">
+				<button type="submit" th:text="#{action.search}">Buscar</button>
+			</div>
+		</form>
+
+		<section class="panel" th:if="${searched}">
+			<h2 th:text="#{accesses.history}">Histórico de acesso</h2>
+			<div class="table-wrap">
+				<table class="table">
+					<thead>
+						<tr>
+							<th th:text="#{common.date}">Data</th>
+							<th th:text="#{common.email}">E-mail</th>
+							<th th:text="#{accesses.event}">Evento</th>
+							<th th:text="#{common.status}">Status</th>
+							<th th:text="#{accesses.ip}">IP</th>
+							<th th:text="#{common.message}">Mensagem</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="access : ${accessLogs}">
+							<td th:text="${#temporals.format(access.createdAt, 'dd/MM/yyyy HH:mm:ss')}">08/07/2026 12:00:00</td>
+							<td th:text="${access.username ?: '-'}">admin@nimbus-file-manager.local</td>
+							<td th:text="${access.eventType}">LOGIN_SUCCESS</td>
+							<td><span class="badge"
+									th:classappend="${#strings.toString(access.status) == 'SUCCESS'} ? 'ok' : 'error'"
+									th:text="${access.status}">SUCCESS</span></td>
+							<td th:text="${access.ipAddress ?: '-'}">127.0.0.1</td>
+							<td th:text="${access.message ?: '-'}">Login completed.</td>
+						</tr>
+						<tr th:if="${#lists.isEmpty(accessLogs)}">
+							<td colspan="6" th:text="#{accesses.empty}">Nenhum acesso encontrado para este e-mail.</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</section>
+</div>
+</body>
+</html>

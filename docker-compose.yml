@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${NIMBUS_FILE_MANAGER_DB_USER:-nimbus_file_manager}
+      POSTGRES_PASSWORD: ${NIMBUS_FILE_MANAGER_DB_PASSWORD:-nimbus_file_manager}
+      POSTGRES_DB: ${NIMBUS_FILE_MANAGER_DB_NAME:-nimbus_file_manager}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NIMBUS_FILE_MANAGER_DB_USER:-nimbus_file_manager}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    # Covers the full RSS (~836 MB measured), not just the heap: the JVM (JDK 25,
+    # UseContainerSupport on) sizes the heap from this cgroup limit, and the app's ~400 MB
+    # of off-heap (image/video decode buffers, directory watch handles) lives outside it.
+    mem_limit: 1536m
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${NIMBUS_FILE_MANAGER_PORT:-8088}:8088"
+    environment:
+      # JAVA_TOOL_OPTIONS is read automatically by the JVM (no ENTRYPOINT change needed).
+      # MaxRAMPercentage sizes the heap from mem_limit above (~690 MB at 1536m, ~3x the
+      # 229 MB inventory peak). NativeMemoryTracking is for measuring off-heap in homolog
+      # (jcmd 1 VM.native_memory summary); drop it in prod once the numbers are validated.
+      JAVA_TOOL_OPTIONS: >-
+        -XX:MaxRAMPercentage=45
+        -XX:MaxMetaspaceSize=256m
+        -XX:NativeMemoryTracking=summary
+      # Seed the watch as non-recursive on first boot: a container watches the large
+      # bind-mounted /library tree, where a recursive watch would need one inotify handle
+      # per subfolder (can exceed fs.inotify.max_user_watches) and bind-mount events are
+      # unreliable anyway. Periodic reconciliation covers changes. Flip in Settings if wanted.
+      NIMBUS_FILE_MANAGER_WATCH_RECURSIVE: "false"
+      NIMBUS_FILE_MANAGER_DB_HOST: db
+      NIMBUS_FILE_MANAGER_DB_PORT: 5432
+      NIMBUS_FILE_MANAGER_DB_NAME: ${NIMBUS_FILE_MANAGER_DB_NAME:-nimbus_file_manager}
+      NIMBUS_FILE_MANAGER_DB_USER: ${NIMBUS_FILE_MANAGER_DB_USER:-nimbus_file_manager}
+      NIMBUS_FILE_MANAGER_DB_PASSWORD: ${NIMBUS_FILE_MANAGER_DB_PASSWORD:-nimbus_file_manager}
+      # Change this in a .env file before first boot - DefaultUserInitializer only warns
+      # about the default password, it doesn't refuse to start with it (see
+      # revisao-projeto.md history). NIMBUS_FILE_MANAGER_ADMIN_PASSWORD has no default here on
+      # purpose, so compose fails fast instead of silently booting with admin/admin.
+      NIMBUS_FILE_MANAGER_ADMIN_USERNAME: ${NIMBUS_FILE_MANAGER_ADMIN_USERNAME:-admin@nimbus-file-manager.local}
+      NIMBUS_FILE_MANAGER_ADMIN_PASSWORD: ${NIMBUS_FILE_MANAGER_ADMIN_PASSWORD:?set NIMBUS_FILE_MANAGER_ADMIN_PASSWORD in a .env file, see .env.example}
+      NIMBUS_FILE_MANAGER_GOOGLE_LOGIN_ENABLED: ${NIMBUS_FILE_MANAGER_GOOGLE_LOGIN_ENABLED:-false}
+      NIMBUS_FILE_MANAGER_EMAIL_GMAIL_ENABLED: ${NIMBUS_FILE_MANAGER_EMAIL_GMAIL_ENABLED:-false}
+      NIMBUS_FILE_MANAGER_SMTP_USERNAME: ${NIMBUS_FILE_MANAGER_SMTP_USERNAME:-}
+      NIMBUS_FILE_MANAGER_SMTP_PASSWORD: ${NIMBUS_FILE_MANAGER_SMTP_PASSWORD:-}
+    volumes:
+      - nimbus-file-manager-workspace:/workspace
+      # Bind-mount the real folder(s) you want the app to inventory/organize here. From
+      # inside the container this is always /library regardless of the host path, so once
+      # it's running, set the watch folder (Settings screen) or any sourcePath/targetPath
+      # to /library/... - not the host path.
+      - ${NIMBUS_FILE_MANAGER_LIBRARY_PATH:-./library}:/library
+
+volumes:
+  db-data:
+  nimbus-file-manager-workspace:

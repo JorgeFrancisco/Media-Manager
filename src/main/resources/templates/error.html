@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
+<!--
+	Standalone error page used by Spring Boot's error handling (BasicErrorController
+	resolves the view named "error"). It deliberately does NOT reuse fragments/layout
+	because AppViewModelAdvice - which feeds the shell (theme, sidebar, currentUser,
+	appVersion...) - is scoped to the "web" package and does not run for the error
+	controller, so the layout would fail to render. Only the HTTP status is shown; no
+	message, stack trace, exception type or path is exposed (see server.error.* in
+	application.properties).
+-->
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title th:text="#{error.title}">Erro</title>
+	<link rel="icon" th:href="@{/favicon.ico}">
+	<link rel="stylesheet" th:href="@{/css/base.css}">
+	<link rel="stylesheet" th:href="@{/css/components.css}">
+</head>
+<body>
+	<main style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem;">
+		<section class="panel" style="max-width:28rem; text-align:center;">
+			<div style="font-size:3rem; font-weight:700; line-height:1; color:var(--accent);"
+					th:text="${status != null ? status : #messages.msg('error.title')}">500</div>
+			<h1 style="margin:.6rem 0 .3rem; font-size:1.15rem;" th:switch="${status}">
+				<span th:case="403" th:text="#{error.403}">Você não tem acesso a esta página.</span>
+				<span th:case="404" th:text="#{error.404}">Página não encontrada.</span>
+				<span th:case="401" th:text="#{error.401}">Sessão expirada. Faça login novamente.</span>
+				<span th:case="*" th:text="#{error.generic}">Algo deu errado.</span>
+			</h1>
+			<p class="muted" style="margin:0 0 1.2rem;" th:text="#{error.retryLater}">Se o problema continuar, tente novamente mais tarde.</p>
+			<a class="button" th:href="@{/}" th:text="#{error.home}">Voltar ao início</a>
+		</section>
+	</main>
+</body>
+</html>

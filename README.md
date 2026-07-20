@@ -2,6 +2,12 @@
 
 ![Nimbus File Manager](src/main/resources/static/img/nimbus-file-manager-banner-readme.png)
 
+<img width="1890" height="943" alt="imagem" src="https://github.com/user-attachments/assets/fe31e0b3-02d3-467b-bd31-a2d1fdd59321" />
+
+<img width="1770" height="889" alt="imagem3" src="https://github.com/user-attachments/assets/a41a6242-e60f-4e3e-95ed-131c81f15d42" />
+
+<img width="1882" height="940" alt="imagem2" src="https://github.com/user-attachments/assets/4d9685e2-41a3-4a10-a4a6-6de586555939" />
+
 Local-first file manager built with Java 25, Spring Boot and PostgreSQL for continuously inventorying, monitoring, enriching, organizing and auditing personal files.
 
 Rather than acting as a traditional file explorer, Nimbus File Manager builds an intelligent catalog of your files, extracts metadata, detects duplicates and similar content, tracks filesystem changes in real time, and provides safe organization workflows with full audit history and undo support.

@@ -33,6 +33,7 @@ import br.com.jorgemelo.nimbusfilemanager.settings.application.ScanExclusionServ
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.repository.CatalogFileLocationRepository;
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.repository.projection.FileExplorerLocationProjection;
 import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.WorkspaceManager;
+import br.com.jorgemelo.nimbusfilemanager.shared.util.DateTimeFormatUtils;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.FilePreviewSupport;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.PathUtils;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.UuidV7;
@@ -263,7 +264,8 @@ public class FileExplorerService {
 		boolean registered = mediaPublicId != null;
 
 		return new FileExplorerEntry(fileName(path), normalizedPath, directory, false, registered, fileType, image,
-				video, pdf, text, audio, previewUrl, size, modifiedAt, null, mediaPublicId);
+				video, pdf, text, audio, previewUrl, size, modifiedAt, DateTimeFormatUtils.human(modifiedAt), null,
+				mediaPublicId);
 	}
 
 	/**
@@ -309,7 +311,8 @@ public class FileExplorerService {
 				if (added.add(normalizedPath)) {
 					missingEntries.add(new FileExplorerEntry(fileName(currentPath), normalizedPath, false, true, true,
 							location.getFileType().name(), false, false, false, false, false, null,
-							location.getSizeBytes(), null, location.getCatalogFileId(), publicId(location)));
+							location.getSizeBytes(), null, DateTimeFormatUtils.human(null), location.getCatalogFileId(),
+							publicId(location)));
 				}
 			}
 		}

@@ -50,6 +50,7 @@ import br.com.jorgemelo.nimbusfilemanager.media.domain.enums.MediaTypeFilter;
 import br.com.jorgemelo.nimbusfilemanager.preferences.application.UserPagePreferenceService;
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.DateSource;
 import br.com.jorgemelo.nimbusfilemanager.shared.i18n.LocalizedComponent;
+import br.com.jorgemelo.nimbusfilemanager.shared.util.DateTimeFormatUtils;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.EnumUtils;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.FilePreviewSupport;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.FileTypeIcon;
@@ -543,7 +544,8 @@ public class DuplicatesWebController extends LocalizedComponent {
 				file.modifiedAt(), file.captureDate(), keep, recommendedKeep, image, video, pdf, text, audio, previewUrl,
 				contentUrl, FileTypeIcon.iconClass(file.fileType()), localizedIconLabel(file.fileType()), highlight,
 				reason, resolution, previewable, lightboxClass(pdf, text, audio), openTitle(pdf, text, audio),
-				dateSourceLabel(file.dateSource()), dateSourceBadgeClass(file.dateSource()));
+				dateSourceLabel(file.dateSource()), dateSourceBadgeClass(file.dateSource()),
+				DateTimeFormatUtils.human(file.captureDate()), DateTimeFormatUtils.human(file.modifiedAt()));
 	}
 
 	private String lightboxClass(boolean pdf, boolean text, boolean audio) {

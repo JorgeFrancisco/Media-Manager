@@ -417,6 +417,6 @@ class FileExplorerServiceTest {
 
 	private FileExplorerEntry entry(String fileType) {
 		return new FileExplorerEntry("file", "C:/file", false, false, false, fileType, false, false, false, false,
-				false, null, 1L, null, null, null);
+				false, null, 1L, null, null, null, null);
 	}
 }

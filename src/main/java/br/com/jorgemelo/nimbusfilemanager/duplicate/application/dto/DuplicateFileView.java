@@ -49,5 +49,8 @@ public record DuplicateFileView(
 		// Precomputed presentation: preview support, lightbox CSS class, the localized
 		// "open" tooltip, and the localized date-origin label plus its badge tier.
 		boolean previewable, String lightboxClass, String openTitle, String dateSourceLabel,
-		String dateSourceBadgeClass) {
+		String dateSourceBadgeClass,
+
+		// Human-friendly renderings of the dates above, so the template only displays.
+		String captureDateLabel, String modifiedAtLabel) {
 }

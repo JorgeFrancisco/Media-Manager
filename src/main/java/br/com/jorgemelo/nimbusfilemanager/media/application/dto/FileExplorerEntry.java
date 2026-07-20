@@ -35,6 +35,8 @@ public record FileExplorerEntry(
 
 		LocalDateTime modifiedAt,
 
+		String modifiedAtLabel,
+
 		Long catalogFileId,
 
 		UUID mediaPublicId) {

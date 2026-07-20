@@ -11,6 +11,7 @@ import br.com.jorgemelo.nimbusfilemanager.shared.domain.model.Execution;
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.model.ExecutionStep;
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.model.StatusMessage;
 import br.com.jorgemelo.nimbusfilemanager.shared.i18n.LocalizedComponent;
+import br.com.jorgemelo.nimbusfilemanager.shared.util.DateTimeFormatUtils;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.UuidV7;
 
 /**
@@ -45,7 +46,9 @@ public class ExecutionMapper extends LocalizedComponent {
 				execution.getTotalExpected(), percentComplete(execution),
 				resolve(execution.getStatusMessage()),
 				execution.getExecuteFlag(), statusLabel(status), status.isTerminal(),
-				typeLabel(execution.getExecutionType()), triggerLabel(execution.getTriggerEvent()));
+				typeLabel(execution.getExecutionType()), triggerLabel(execution.getTriggerEvent()),
+				DateTimeFormatUtils.human(execution.getStartedAt()),
+				DateTimeFormatUtils.human(execution.getFinishedAt()));
 	}
 
 	ExecutionStepResponse toStepResponse(ExecutionStep step) {

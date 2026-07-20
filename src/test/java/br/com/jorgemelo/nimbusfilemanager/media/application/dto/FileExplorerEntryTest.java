@@ -26,7 +26,7 @@ class FileExplorerEntryTest {
 
 	private void assertEntry(String type, boolean directory, boolean missing, String icon, String labelKey) {
 		FileExplorerEntry entry = new FileExplorerEntry("name", "path", directory, missing, false, type, false, false,
-				false, false, false, null, null, null, null, null);
+				false, false, false, null, null, null, null, null, null);
 
 		Assertions.assertThat(entry.iconClass()).isEqualTo(icon);
 		Assertions.assertThat(entry.iconLabelKey()).isEqualTo(labelKey);

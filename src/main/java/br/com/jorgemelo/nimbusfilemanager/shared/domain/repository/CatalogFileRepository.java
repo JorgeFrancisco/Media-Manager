@@ -1,5 +1,6 @@
 package br.com.jorgemelo.nimbusfilemanager.shared.domain.repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -38,18 +39,40 @@ public interface CatalogFileRepository extends JpaRepository<CatalogFile, Long> 
 	List<CatalogExportRow> findCatalogExportRows(@Param("lastId") Long lastId, Pageable pageable);
 
 	/**
-	 * Marks the given files MISSING (absent from disk), preserving the DELETED
-	 * invariant: a DELETED file is never downgraded to MISSING.
+	 * Marks the given files MISSING (absent from disk) and stamps
+	 * {@code lifecycle_changed_at} with {@code changedAt}. Only real ACTIVE -&gt;
+	 * MISSING transitions are touched: a DELETED file is never downgraded (invariant
+	 * preserved) and an already-MISSING file keeps its original timestamp, so the
+	 * retention clock the catalog purge uses does not reset on every reconcile pass.
 	 */
 	@Modifying(clearAutomatically = true)
 	@Query("""
 			update CatalogFile mf
 			   set mf.lifecycleStatus = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.MISSING,
+			       mf.lifecycleChangedAt = :changedAt,
 			       mf.version = mf.version + 1
 			 where mf.id in :ids
-			   and mf.lifecycleStatus <> br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.DELETED
+			   and mf.lifecycleStatus = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.ACTIVE
 			""")
-	int markMissingByIds(@Param("ids") List<Long> ids);
+	int markMissingByIds(@Param("ids") List<Long> ids, @Param("changedAt") LocalDateTime changedAt);
+
+	/**
+	 * Permanently removes {@code catalog_file} rows that have been MISSING since
+	 * before {@code cutoff}, anchored on {@code lifecycle_changed_at}. Set-based and
+	 * reliant on the database foreign keys to handle dependents: location, metadata,
+	 * photo and video rows cascade away ({@code ON DELETE CASCADE}), while movement
+	 * audit rows are detached, not deleted ({@code ON DELETE SET NULL}), so history
+	 * survives. DELETED rows are intentionally excluded - their removal is owned by
+	 * the quarantine retention purge, which also clears the quarantined file and its
+	 * movement.
+	 */
+	@Modifying(clearAutomatically = true)
+	@Query("""
+			delete from CatalogFile mf
+			 where mf.lifecycleStatus = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.MISSING
+			   and mf.lifecycleChangedAt < :cutoff
+			""")
+	int deleteMissingBefore(@Param("cutoff") LocalDateTime cutoff);
 
 	/**
 	 * Bulk-removes every {@code catalog_file} placed at or under a library root,

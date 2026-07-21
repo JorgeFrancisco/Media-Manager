@@ -103,6 +103,16 @@ public class CatalogFile {
 	@Builder.Default
 	private LifecycleStatus lifecycleStatus = LifecycleStatus.ACTIVE;
 
+	/**
+	 * When {@link #lifecycleStatus} last changed. Stamped only on a real transition
+	 * (see the {@code mark*} methods and the bulk {@code markMissingByIds}), so it
+	 * anchors the retention window the catalog purge uses to age MISSING records -
+	 * a file that stays MISSING across successive reconciles keeps its original
+	 * timestamp instead of having the clock reset on every pass.
+	 */
+	@Column(name = "lifecycle_changed_at")
+	private LocalDateTime lifecycleChangedAt;
+
 	@Column(name = "last_analysis")
 	private LocalDateTime lastAnalysis;
 
@@ -176,21 +186,34 @@ public class CatalogFile {
 
 	/** Promote back to ACTIVE (file found/re-found on disk). */
 	public void markActive() {
-		this.lifecycleStatus = LifecycleStatus.ACTIVE;
+		if (this.lifecycleStatus != LifecycleStatus.ACTIVE) {
+			this.lifecycleStatus = LifecycleStatus.ACTIVE;
+
+			this.lifecycleChangedAt = LocalDateTime.now(ClockHolder.clock());
+		}
 	}
 
 	/**
 	 * Mark as MISSING (absent from disk), preserving the DELETED invariant: a
-	 * DELETED file is never downgraded to MISSING.
+	 * DELETED file is never downgraded to MISSING. Only a real ACTIVE -&gt; MISSING
+	 * transition stamps {@link #lifecycleChangedAt}; re-confirming an
+	 * already-MISSING file keeps its original timestamp so the retention clock does
+	 * not reset.
 	 */
 	public void markMissing() {
-		if (this.lifecycleStatus != LifecycleStatus.DELETED) {
+		if (this.lifecycleStatus == LifecycleStatus.ACTIVE) {
 			this.lifecycleStatus = LifecycleStatus.MISSING;
+
+			this.lifecycleChangedAt = LocalDateTime.now(ClockHolder.clock());
 		}
 	}
 
 	/** Mark as explicitly DELETED (soft delete). */
 	public void markDeleted() {
-		this.lifecycleStatus = LifecycleStatus.DELETED;
+		if (this.lifecycleStatus != LifecycleStatus.DELETED) {
+			this.lifecycleStatus = LifecycleStatus.DELETED;
+
+			this.lifecycleChangedAt = LocalDateTime.now(ClockHolder.clock());
+		}
 	}
 }

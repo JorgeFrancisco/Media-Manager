@@ -1,0 +1,60 @@
+package br.com.jorgemelo.nimbusfilemanager.catalog.application;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.jorgemelo.nimbusfilemanager.shared.domain.repository.CatalogFileRepository;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Retention cleanup of the catalog: permanently removes {@code catalog_file}
+ * rows that have been MISSING (their file absent from disk) longer than the
+ * configured number of days, anchored on {@code lifecycle_changed_at}. Reconcile
+ * marks records MISSING but never removes them, so without this they accumulate
+ * forever.
+ *
+ * <p>
+ * Only MISSING is purged. DELETED rows are left untouched on purpose: their
+ * removal is owned by the quarantine retention purge, which also clears the
+ * quarantined file and its movement audit - purging them here would orphan that
+ * flow. This class is pure logic; the schedule lives in
+ * {@code CatalogFilePurgeScheduler}.
+ */
+@Slf4j
+@Service
+class CatalogFileRetentionService {
+
+	private final CatalogFileRepository catalogFileRepository;
+	private final Clock clock;
+
+	CatalogFileRetentionService(CatalogFileRepository catalogFileRepository, Clock clock) {
+		this.catalogFileRepository = catalogFileRepository;
+		this.clock = clock;
+	}
+
+	/**
+	 * Removes catalog rows MISSING for more than {@code days} days. Their placement,
+	 * metadata and media rows cascade away in the database; movement audit rows are
+	 * detached (SET NULL), so history is preserved. A non-positive {@code days} is a
+	 * no-op (retention disabled).
+	 *
+	 * @return number of catalog rows removed
+	 */
+	@Transactional
+	int purgeMissingOlderThan(int days) {
+		if (days <= 0) {
+			return 0;
+		}
+
+		LocalDateTime cutoff = LocalDateTime.now(clock).minusDays(days);
+
+		int purged = catalogFileRepository.deleteMissingBefore(cutoff);
+
+		log.info("Catalog missing purge finished. removed={}, cutoff={}", purged, cutoff);
+
+		return purged;
+	}
+}

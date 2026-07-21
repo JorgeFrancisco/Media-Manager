@@ -1,5 +1,8 @@
 package br.com.jorgemelo.nimbusfilemanager.shared.domain.model;
 
+import java.time.LocalDateTime;
+import java.time.Month;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -50,21 +53,35 @@ class CatalogFileLifecycleTest {
 	}
 
 	@Test
-	void markMissingFromActiveBecomesMissing() {
+	void markMissingFromActiveBecomesMissingAndStampsTheChange() {
 		CatalogFile file = CatalogFile.builder().lifecycleStatus(LifecycleStatus.ACTIVE).build();
 
 		file.markMissing();
 
 		Assertions.assertThat(file.getLifecycleStatus()).isEqualTo(LifecycleStatus.MISSING);
+		Assertions.assertThat(file.getLifecycleChangedAt()).isNotNull();
 	}
 
 	@Test
-	void markMissingNeverDowngradesDeleted() {
+	void markMissingNeverDowngradesDeletedNorStampsIt() {
 		CatalogFile deleted = CatalogFile.builder().lifecycleStatus(LifecycleStatus.DELETED).build();
 
 		deleted.markMissing();
 
 		Assertions.assertThat(deleted.getLifecycleStatus()).isEqualTo(LifecycleStatus.DELETED);
+		Assertions.assertThat(deleted.getLifecycleChangedAt()).as("no transition, no stamp").isNull();
+	}
+
+	@Test
+	void markMissingDoesNotResetTheTimestampWhenAlreadyMissing() {
+		LocalDateTime firstMark = LocalDateTime.of(2020, Month.JANUARY, 1, 12, 0);
+
+		CatalogFile file = CatalogFile.builder().lifecycleStatus(LifecycleStatus.MISSING).lifecycleChangedAt(firstMark)
+				.build();
+
+		file.markMissing();
+
+		Assertions.assertThat(file.getLifecycleChangedAt()).as("retention clock not reset").isEqualTo(firstMark);
 	}
 
 	@Test

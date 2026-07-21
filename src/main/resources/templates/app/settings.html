@@ -16,7 +16,7 @@
 	<section class="stack" th:if="${activeTab == 'system'}" th:with="INVENTORY='nimbus-file-manager.inventory.', SECURITY='nimbus-file-manager.security.',
 			API='nimbus-file-manager.api.', METADATA='nimbus-file-manager.metadata.', TOOLS='nimbus-file-manager.tools.',
 			DUPLICATES='nimbus-file-manager.duplicates.', LAYOUT='nimbus-file-manager.default-layout', SCAN='nimbus-file-manager.scan.',
-			LOCATION='nimbus-file-manager.location.'">
+			LOCATION='nimbus-file-manager.location.', CATALOG='nimbus-file-manager.catalog.'">
 		<section class="panel">
 			<h2 th:text="#{settings.sys.monitoring}">Monitoramento automático</h2>
 			<p class="muted" th:text="#{settings.sys.monitoringHint}">Como o inventário contínuo observa a pasta monitorada.</p>
@@ -31,6 +31,15 @@
 			<p class="muted" th:text="#{settings.sys.organizationHint}">Layout padrão usado para organizar arquivos e critério de duplicados.</p>
 			<th:block th:each="setting : ${settings}"
 					th:if="${#strings.startsWith(setting.settingKey, DUPLICATES) or setting.settingKey == LAYOUT}">
+				<div th:replace="~{fragments/settings-row :: settingRow(${setting})}"></div>
+			</th:block>
+		</section>
+
+		<section class="panel section">
+			<h2 th:text="#{settings.sys.catalog}">Catálogo</h2>
+			<p class="muted" th:text="#{settings.sys.catalogHint}">Retenção dos registros do catálogo cujo arquivo sumiu do disco (MISSING).</p>
+			<th:block th:each="setting : ${settings}"
+					th:if="${#strings.startsWith(setting.settingKey, CATALOG)}">
 				<div th:replace="~{fragments/settings-row :: settingRow(${setting})}"></div>
 			</th:block>
 		</section>

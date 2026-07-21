@@ -90,7 +90,7 @@ class OrganizationReconcileServiceTest {
 		Assertions.assertThat(catalogFile.getLocation().getCurrentPath())
 				.isEqualTo(newPath.toAbsolutePath().normalize().toString());
 
-		verify(catalogFileRepository, never()).markMissingByIds(any());
+		verify(catalogFileRepository, never()).markMissingByIds(any(), any());
 	}
 
 	@Test
@@ -111,7 +111,7 @@ class OrganizationReconcileServiceTest {
 
 		Assertions.assertThat(catalogFile.getFileKey()).isEqualTo(oldPath.toAbsolutePath().normalize().toString());
 
-		verify(catalogFileRepository).markMissingByIds(List.of(1L));
+		verify(catalogFileRepository).markMissingByIds(eq(List.of(1L)), any());
 	}
 
 	@Test
@@ -138,7 +138,7 @@ class OrganizationReconcileServiceTest {
 		Assertions.assertThat(catalogFileA.getFileKey()).isEqualTo(oldA.toAbsolutePath().normalize().toString());
 		Assertions.assertThat(catalogFileB.getFileKey()).isEqualTo(oldB.toAbsolutePath().normalize().toString());
 
-		verify(catalogFileRepository).markMissingByIds(List.of(1L, 2L));
+		verify(catalogFileRepository).markMissingByIds(eq(List.of(1L, 2L)), any());
 	}
 
 	@Test
@@ -171,7 +171,7 @@ class OrganizationReconcileServiceTest {
 		Assertions.assertThat(catalogFileA.getFileKey()).isEqualTo(newA.toAbsolutePath().normalize().toString());
 		Assertions.assertThat(catalogFileB.getFileKey()).isEqualTo(newB.toAbsolutePath().normalize().toString());
 
-		verify(catalogFileRepository, never()).markMissingByIds(any());
+		verify(catalogFileRepository, never()).markMissingByIds(any(), any());
 	}
 
 	@Test
@@ -200,7 +200,7 @@ class OrganizationReconcileServiceTest {
 
 		Assertions.assertThat(location.getCurrentPath()).isEqualTo(organized.toAbsolutePath().normalize().toString());
 
-		verify(catalogFileRepository, never()).markMissingByIds(any());
+		verify(catalogFileRepository, never()).markMissingByIds(any(), any());
 	}
 
 	@Test
@@ -374,7 +374,7 @@ class OrganizationReconcileServiceTest {
 		Assertions.assertThat(response.filesOnDisk()).isZero();
 		Assertions.assertThat(response.missingOnDisk()).isZero();
 
-		verify(catalogFileRepository, never()).markMissingByIds(any());
+		verify(catalogFileRepository, never()).markMissingByIds(any(), any());
 		verify(catalogFileLocationRepository, never()).findForReconcile(any(), any(), any());
 	}
 

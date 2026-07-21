@@ -49,6 +49,7 @@ Project started on July 5, 2026.
 - Organization execution that physically moves files.
 - Integrity-checked moves: each physical move is verified and its catalog update plus movement record are written atomically per file, so disk and database never diverge silently.
 - Self-healing reconciliation that repairs catalog drift after moves (stale `current_path`, renames, missing files) in the background, with no manual trigger. Each reconcile that actually repairs the catalog is recorded as a distinct `RECONCILE` execution (silent no-op checks are not, to avoid flooding the history) and the topbar shows a lightweight "last reconciliation" heartbeat; every execution also records what triggered it (manual, file event or periodic check).
+- Scheduled catalog retention purge that permanently removes records whose file has been missing from disk (`MISSING`) longer than a configurable number of days, anchored on when the record became missing. The window is read from Settings (`nimbus-file-manager.catalog.missing-retention-days`); a blank or non-positive value disables it (fail-safe). `DELETED` records are left to the quarantine purge.
 - Organization movement log with original path, target path, status and error message.
 - Undo for organization executions.
 - Execution history, steps, analysis errors and movement records.
@@ -881,11 +882,12 @@ curl "http://localhost:8088/api/statistics/errors/files/details"
 
 ## Database Migrations
 
-Flyway applies schema changes at startup. The whole schema currently ships as a single consolidated migration (`V1__initial_schema.sql`, squashed on 2026-07-12 for a fresh-database reset); future changes are added as new versions on top of it. Example startup log for a new database:
+Flyway applies schema changes at startup. The schema was squashed into a single consolidated baseline (`V1__initial_schema.sql`, on 2026-07-12 for a fresh-database reset); later changes are added as new versions on top of it (currently up to `V2__catalog_file_lifecycle_changed_at.sql`, which adds the retention anchor for the catalog missing-record purge). Example startup log for a new database:
 
 ```text
 Migrating schema "public" to version "1 - initial schema"
-Successfully applied 1 migration to schema "public", now at version v1
+Migrating schema "public" to version "2 - catalog file lifecycle changed at"
+Successfully applied 2 migrations to schema "public", now at version v2
 ```
 
 Check applied migrations with:
@@ -962,11 +964,11 @@ Run unit/integration tests with JaCoCo:
 ./mvnw clean test
 ```
 
-Last result from a clean local build, generated on 2026-07-20 (PostgreSQL):
+Last result from a clean local build, generated on 2026-07-21 (PostgreSQL):
 
 ```text
-Tests:       1424 run, 0 failures, 0 errors, 9 skipped
-JaCoCo:      95.84% instruction, 84.57% branch, 95.07% line, 96.28% method, 99.68% class
+Tests:       1436 run, 0 failures, 0 errors, 9 skipped
+JaCoCo:      95.87% instruction, 84.63% branch, 95.13% line, 96.35% method, 99.68% class
 ```
 
 The 9 skipped tests are OS-dependent (symbolic-link / POSIX-permission) cases that
@@ -984,8 +986,8 @@ whole project: all occurrences were this same style, none a real defect.)
 Tests run in parallel (configured in `src/test/resources/junit-platform.properties`):
 different test classes execute concurrently while the methods inside one class stay on a
 single thread, at ~50% of available cores (dynamic factor `0.5`). Execution is thread-based
-(one JVM), so the single JaCoCo agent still aggregates coverage correctly. The six
-`@SpringBootTest` classes each start their own throwaway PostgreSQL container
+(one JVM), so the single JaCoCo agent still aggregates coverage correctly. Each
+`@SpringBootTest` class starts its own throwaway PostgreSQL container
 (Testcontainers + `@ServiceConnection`), so they are fully isolated and run in parallel with
 no shared database - which requires a running Docker engine locally and in CI. The suite was
 run 5× back-to-back with byte-identical JaCoCo metrics (no flaky tests, no coverage jitter).

@@ -1,5 +1,7 @@
 package br.com.jorgemelo.nimbusfilemanager.media.application.explorer;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +30,12 @@ import lombok.extern.slf4j.Slf4j;
 public class FileExplorerReconcileService {
 
 	private final CatalogFileRepository catalogFileRepository;
+	private final Clock clock;
 
 	@Autowired
-	public FileExplorerReconcileService(CatalogFileRepository catalogFileRepository) {
+	public FileExplorerReconcileService(CatalogFileRepository catalogFileRepository, Clock clock) {
 		this.catalogFileRepository = catalogFileRepository;
+		this.clock = clock;
 	}
 
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -40,7 +44,7 @@ public class FileExplorerReconcileService {
 			return;
 		}
 
-		int updated = catalogFileRepository.markMissingByIds(catalogFileIds);
+		int updated = catalogFileRepository.markMissingByIds(catalogFileIds, LocalDateTime.now(clock));
 
 		log.info("Explorer reconcile: marked {} database record(s) as missing on disk", updated);
 	}

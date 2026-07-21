@@ -246,6 +246,8 @@ public class AppSettingService implements ApplicationRunner {
 						"Pasta de quarentena para onde os duplicados excluídos são movidos. Vazio = exclusão desabilitada até configurar."),
 				new AppSettingDefinition(SettingsConstants.TRASH_RETENTION_DAYS, "90", VALUE_TYPE_INTEGER,
 						"Dias que os arquivos ficam na quarentena antes do expurgo automático."),
+				new AppSettingDefinition(SettingsConstants.CATALOG_MISSING_RETENTION_DAYS, "90", VALUE_TYPE_INTEGER,
+						"Dias que um arquivo ausente do disco (MISSING) permanece no catálogo antes da remoção automática. Vazio ou não positivo desabilita a limpeza."),
 				new AppSettingDefinition(SettingsConstants.SCAN_EXCLUDED_EXTENSIONS,
 						String.join(",", ScanExclusionService.DEFAULT_EXCLUDED_EXTENSIONS), VALUE_TYPE_STRING,
 						"Extensões ignoradas em inventário, reconcile, arquivos e organização. Separe por vírgula, ponto e vírgula ou quebra de linha."),

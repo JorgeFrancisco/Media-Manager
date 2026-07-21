@@ -66,7 +66,7 @@ public class ReconcileApplier {
 				.filter(id -> !renamedIds.contains(id) && !repairedIds.contains(id)).distinct().toList();
 
 		if (!missingIds.isEmpty()) {
-			catalogFileRepository.markMissingByIds(missingIds);
+			catalogFileRepository.markMissingByIds(missingIds, LocalDateTime.now(clock));
 		}
 
 		return withRepairs(response, renamedIds.size(), repairedIds.size(), missingIds.size());

@@ -234,7 +234,7 @@ class AppSettingServiceTest {
 	private NimbusFileManagerProperties properties(boolean recursiveWatchDefault) {
 		return new NimbusFileManagerProperties("C:/workspace", List.of("database", "temp"), "DEFAULT",
 				new Tools("C:/tools/ffprobe.exe", "C:/tools/ffmpeg.exe", "C:/tools/exiftool.exe"),
-				new Inventory(100, recursiveWatchDefault, 60_000L), new Api(50, 500, 20, 100),
+				new Inventory(100, recursiveWatchDefault, 60_000L), new Api(500, 20, 100),
 				new Metadata(new Exiftool(true), new Mediainfo(true), new Ffprobe(true)),
 				new Duplicates("OLDEST_MODIFIED"), new Security(5, 5, 15, true, "admin", "admin"), null);
 	}

@@ -373,7 +373,7 @@ class PhotoSimilarityServiceTest {
 
 	private PhotoSimilarityService service(PhotoSsimService ssim) {
 		NimbusFileManagerProperties properties = new NimbusFileManagerProperties("C:/workspace", List.of(), null, null, null,
-				new Api(20, 100, 2, 50), null, null, null, null);
+				new Api(100, 2, 50), null, null, null, null);
 
 		lenient().when(settings.intValue(any(), any(Integer.class)))
 				.thenAnswer(invocation -> invocation.getArgument(1));

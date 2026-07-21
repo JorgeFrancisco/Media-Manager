@@ -158,6 +158,6 @@ class VideoThumbnailServiceTest {
 
 	private NimbusFileManagerProperties properties() {
 		return new NimbusFileManagerProperties(temp.toString(), List.of(), null, new Tools(null, "ffmpeg", null),
-				new Inventory(10, true, 60_000L), new Api(20, 100, 2, 50), null, null, null, null);
+				new Inventory(10, true, 60_000L), new Api(100, 2, 50), null, null, null, null);
 	}
 }

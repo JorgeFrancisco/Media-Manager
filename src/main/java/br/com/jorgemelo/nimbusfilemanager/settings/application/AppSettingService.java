@@ -36,7 +36,6 @@ public class AppSettingService implements ApplicationRunner {
 	private static final String VALUE_FALSE = "false";
 	static final String TOOL_EXIFTOOL = "nimbus-file-manager.tools.exiftool";
 	static final String INVENTORY_PROGRESS_INTERVAL = "nimbus-file-manager.inventory.progress-interval";
-	static final String API_DEFAULT_PAGE_SIZE = "nimbus-file-manager.api.default-page-size";
 	static final String METADATA_EXIFTOOL_ENABLED = "nimbus-file-manager.metadata.exiftool.enabled";
 	static final String METADATA_MEDIAINFO_ENABLED = "nimbus-file-manager.metadata.mediainfo.enabled";
 	static final String METADATA_FFPROBE_ENABLED = "nimbus-file-manager.metadata.ffprobe.enabled";
@@ -221,8 +220,6 @@ public class AppSettingService implements ApplicationRunner {
 				new AppSettingDefinition(INVENTORY_PROGRESS_INTERVAL,
 						intDefault(properties.inventory(), Inventory::progressInterval), VALUE_TYPE_INTEGER,
 						"Intervalo de atualização de progresso do inventário."),
-				new AppSettingDefinition(API_DEFAULT_PAGE_SIZE, intDefault(properties.api(), Api::defaultPageSize),
-						VALUE_TYPE_INTEGER, "Tamanho padrão de página nas consultas."),
 				new AppSettingDefinition(SettingsConstants.API_MAX_PAGE_SIZE, intDefault(properties.api(), Api::maxPageSize),
 						VALUE_TYPE_INTEGER, "Tamanho máximo de página nas consultas."),
 				new AppSettingDefinition(SettingsConstants.API_DEFAULT_FOLDER_LIMIT,

@@ -61,7 +61,7 @@ class MediaSearchServiceTest {
 
 	private MediaSearchService service() {
 		NimbusFileManagerProperties properties = new NimbusFileManagerProperties("C:/workspace", List.of(), null, null,
-				new Inventory(10, true, 60_000L), new Api(20, 100, 2, 50), null, null, null, null);
+				new Inventory(10, true, 60_000L), new Api(100, 2, 50), null, null, null, null);
 
 		lenient().when(appSettingService.intValue(any(), any(Integer.class)))
 				.thenAnswer(invocation -> invocation.getArgument(1));

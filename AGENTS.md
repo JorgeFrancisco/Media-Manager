@@ -316,6 +316,8 @@ O README representa o **estado atual** do projeto — é onde vivem métricas, c
 
 Cobertura: ao final de todo build que rode a suíte completa (`mvn test`/`verify`), atualizar o bloco de qualidade do README com os valores do `QualitySummary` (contagem de testes e métricas JaCoCo). Não deixar os números defasados — são a referência pública de qualidade e devem refletir o último build local limpo.
 
+**Sem data em métrica recorrente.** Blocos de métrica que se refazem a cada build (cobertura, contagem de testes, mutation score/PIT) **não levam data** — rotular como "última execução" / "most recent run", nunca "gerado em `<data>`". Uma data carimbada numa métrica recorrente vira débito imediato: envelhece no build seguinte e sugere defasagem mesmo quando os números estão atuais. **Exceção — datas de evento histórico único** (quando algo aconteceu, não um estado que se repete: ex.: o squash de migração "em 2026-07-12") **permanecem**, pois registram um fato pontual, não uma métrica.
+
 ---
 
 # Evolução deste documento

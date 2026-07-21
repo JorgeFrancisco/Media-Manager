@@ -31,7 +31,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long> {
 				m.durationMillis, m.filesPerSecond, e.filesFound, e.errors, e.applicationVersion,
 				m.workers, m.chunkSize, m.ffmpegPhotoHashLimit, m.ffprobeVideoLimit,
 				m.photoHashJvmDecodable, m.photoHashFfmpegOnly, m.photoHashFailures)
-			FROM Execution e JOIN e.metrics m
+			FROM Execution e JOIN ExecutionMetrics m ON m.id = e.id
 			WHERE m.durationMillis IS NOT NULL
 			  AND (:version IS NULL OR e.applicationVersion = :version)
 			ORDER BY e.startedAt DESC
@@ -44,7 +44,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long> {
 				m.durationMillis, m.filesPerSecond, e.filesFound, e.errors, e.applicationVersion,
 				m.workers, m.chunkSize, m.ffmpegPhotoHashLimit, m.ffprobeVideoLimit,
 				m.photoHashJvmDecodable, m.photoHashFfmpegOnly, m.photoHashFailures)
-			FROM Execution e LEFT JOIN e.metrics m
+			FROM Execution e LEFT JOIN ExecutionMetrics m ON m.id = e.id
 			WHERE e.id = :id
 			""")
 	Optional<ExecutionTelemetryRow> findTelemetryById(@Param("id") Long id);
@@ -58,7 +58,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long> {
 				m.durationMillis, m.filesPerSecond, e.filesFound, e.errors, e.applicationVersion,
 				m.workers, m.chunkSize, m.ffmpegPhotoHashLimit, m.ffprobeVideoLimit,
 				m.photoHashJvmDecodable, m.photoHashFfmpegOnly, m.photoHashFailures)
-			FROM Execution e LEFT JOIN e.metrics m
+			FROM Execution e LEFT JOIN ExecutionMetrics m ON m.id = e.id
 			WHERE e.id IN :ids
 			ORDER BY e.startedAt DESC
 			""")
@@ -66,7 +66,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long> {
 
 	@Query("""
 			SELECT DISTINCT e.applicationVersion
-			FROM Execution e JOIN e.metrics m
+			FROM Execution e JOIN ExecutionMetrics m ON m.id = e.id
 			WHERE m.durationMillis IS NOT NULL AND e.applicationVersion IS NOT NULL
 			ORDER BY e.applicationVersion DESC
 			""")
@@ -90,8 +90,9 @@ public interface ExecutionRepository extends JpaRepository<Execution, Long> {
 	// --- Retention (cleanup of old executions) -----------------------------------
 	// We only delete finished executions (finishedAt IS NOT NULL); executions in
 	// progress are never touched. The bulk removal triggers the database FKs:
-	// movement / execution_step / execution_phase have ON DELETE CASCADE and
-	// analysis_error has ON DELETE SET NULL, so the children are handled in SQL.
+	// movement / execution_step / execution_phase / execution_metrics have ON DELETE
+	// CASCADE and analysis_error has ON DELETE SET NULL, so the children are handled
+	// in SQL (execution_metrics is unidirectional, so the DB FK is its only cleanup).
 
 	/**
 	 * IDs of the finished executions, most recent first - used by keepLatest to

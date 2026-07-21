@@ -11,19 +11,16 @@ import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.ExecutionStatus;
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.ExecutionTrigger;
 import br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.ExecutionType;
 import br.com.jorgemelo.nimbusfilemanager.shared.util.UuidV7;
-import br.com.jorgemelo.nimbusfilemanager.telemetry.domain.model.ExecutionMetrics;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -108,10 +105,6 @@ public class Execution {
 
 	@Column(name = "total_expected")
 	private Integer totalExpected;
-
-	@OneToOne(mappedBy = "execution", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@ToString.Exclude
-	private ExecutionMetrics metrics;
 
 	@OneToMany(mappedBy = "execution", cascade = CascadeType.ALL, orphanRemoval = true)
 	@Builder.Default

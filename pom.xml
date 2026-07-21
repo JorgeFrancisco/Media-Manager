@@ -466,13 +466,33 @@
 							<targetTests>
 								<param>br.com.jorgemelo.nimbusfilemanager.*</param>
 							</targetTests>
+							<!-- Mirror the JaCoCo <excludes> / sonar.coverage.exclusions so the mutation
+							     universe matches what is meant to be unit-tested. These are PIT class-name
+							     globs (not path globs): '*' spans package separators, so '*.domain.model.*'
+							     means "any class in a domain.model package". -->
 							<excludedClasses>
 								<param>br.com.jorgemelo.nimbusfilemanager.NimbusFileManagerApplication</param>
-								<param>br.com.jorgemelo.nimbusfilemanager.config.*</param>
-								<param>br.com.jorgemelo.nimbusfilemanager.domain.entity.*</param>
-								<param>br.com.jorgemelo.nimbusfilemanager.dto.request.*</param>
-								<param>br.com.jorgemelo.nimbusfilemanager.dto.response.*</param>
+								<param>*.infrastructure.config.*</param>
+								<param>*.domain.model.*</param>
+								<param>*.dto.*</param>
+								<param>*.application.constants.*</param>
+								<param>*Constants</param>
+								<param>*.repository.*</param>
+								<param>*Repository</param>
+								<param>*ProcessRunner</param>
+								<param>*GeoBoundariesSource</param>
+								<param>*.windows.*</param>
 							</excludedClasses>
+							<!-- Testcontainers / @SpringBootTest classes cannot drive mutation testing:
+							     booting a Spring context (and a Postgres container) once per mutation is
+							     intractable. Excluding them makes a whole-project run feasible; the trade-off
+							     is that production code covered ONLY by these is under-reported. Most end in
+							     IntegrationTest; the two that do not are listed explicitly. -->
+							<excludedTestClasses>
+								<param>*IntegrationTest</param>
+								<param>*PhashBacklogAsyncRunnerTest</param>
+								<param>*InventoryOrganizationReinventoryTest</param>
+							</excludedTestClasses>
 							<outputFormats>
 								<param>HTML</param>
 								<param>XML</param>

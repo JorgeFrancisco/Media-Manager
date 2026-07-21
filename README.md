@@ -964,11 +964,11 @@ Run unit/integration tests with JaCoCo:
 ./mvnw clean test
 ```
 
-Last result from a clean local build, generated on 2026-07-21 (PostgreSQL):
+Most recent clean local build (PostgreSQL):
 
 ```text
-Tests:       1437 run, 0 failures, 0 errors, 9 skipped
-JaCoCo:      95.86% instruction, 84.48% branch, 95.11% line, 96.35% method, 99.68% class
+Tests:       1457 run, 0 failures, 0 errors, 9 skipped
+JaCoCo:      96.03% instruction, 85.81% branch, 95.32% line, 96.35% method, 99.68% class
 ```
 
 The 9 skipped tests are OS-dependent (symbolic-link / POSIX-permission) cases that

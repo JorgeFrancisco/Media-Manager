@@ -17,6 +17,7 @@
 	<nav class="tab-strip">
 		<a th:href="@{/app/duplicates(tab='exact', view=${view})}" th:classappend="${activeTab == 'exact'} ? 'active'" th:text="#{duplicates.tab.exact}">Exatos</a>
 		<a th:href="@{/app/duplicates(tab='similar', minSimilarity=${minSimilarity}, view=${view})}" th:classappend="${activeTab == 'similar'} ? 'active'" th:text="#{duplicates.tab.similar}">Fotos semelhantes</a>
+		<a th:href="@{/app/duplicates(tab='videos', minSimilarity=${minSimilarity}, view=${view})}" th:classappend="${activeTab == 'videos'} ? 'active'" th:text="#{duplicates.tab.videos}">Vídeos semelhantes</a>
 	</nav>
 
 	<p class="muted" th:if="${activeTab == 'exact'}" th:text="#{duplicates.exact.description}">
@@ -26,25 +27,26 @@
 		Fotos visualmente parecidas (não necessariamente idênticas), localizadas por pHash de 256 bits e confirmadas por SSIM. A exclusão de
 		verdade ainda não foi implementada - marque abaixo apenas para ver como ficaria a seleção.
 	</p>
-	<form th:if="${activeTab == 'similar'}" th:action="@{/app/duplicates/phash/rebuild}" method="post"
-			onsubmit="return confirm(this.dataset.confirm);" th:data-confirm="#{duplicates.rebuild.confirm}">
+	<p class="muted" th:if="${activeTab == 'videos'}" th:text="#{duplicates.videos.description}">Vídeos visualmente parecidos.</p>
+	<form th:if="${activeTab == 'similar' or activeTab == 'videos'}" th:action="@{${rebuildAction}}" method="post"
+			onsubmit="return confirm(this.dataset.confirm);" th:data-confirm="${activeTab == 'videos'} ? #{duplicates.rebuild.confirm.videos} : #{duplicates.rebuild.confirm}">
 		<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 		<button type="submit" class="secondary small" th:disabled="${!phashRebuildAvailable}" th:text="#{duplicates.rebuild}">Recalcular semelhança</button>
 		<span class="muted" th:text="#{duplicates.rebuild.description}">Recalcula apenas pHash/SSIM; não executa inventário, metadados ou SHA-256.</span>
 	</form>
 
 	<th:block th:unless="${phashBlocking}">
-	<div class="alert" th:if="${activeTab == 'similar' and phashFailed > 0}" role="status">
-		<span th:text="#{duplicates.fingerprint.failed(${phashFailed})}">0 foto(s) não puderam ter impressão digital gerada.</span>
+	<div class="alert" th:if="${(activeTab == 'similar' or activeTab == 'videos') and phashFailed > 0}" role="status">
+		<span th:text="${activeTab == 'videos'} ? #{duplicates.fingerprint.failed.videos(${phashFailed})} : #{duplicates.fingerprint.failed(${phashFailed})}">0 foto(s) não puderam ter impressão digital gerada.</span>
 		<button type="button" class="secondary small fingerprint-failures-open" th:text="#{duplicates.viewFiles}">Ver arquivos</button>
-		<form th:action="@{/app/duplicates/phash/retry}" method="post" style="display:inline">
+		<form th:action="@{${retryAction}}" method="post" style="display:inline">
 			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 			<button type="submit" class="secondary small" th:text="#{duplicates.retry}">Tentar novamente</button>
 		</form>
 	</div>
 
-	<form class="panel inline-form" th:if="${activeTab == 'similar'}" th:action="@{/app/duplicates}" method="get">
-		<input type="hidden" name="tab" value="similar">
+	<form class="panel inline-form" th:if="${activeTab == 'similar' or activeTab == 'videos'}" th:action="@{/app/duplicates}" method="get">
+		<input type="hidden" name="tab" th:value="${activeTab}">
 		<input type="hidden" name="view" th:value="${view}">
 		<label><span th:text="#{duplicates.minimumSimilarity}">Semelhança mínima</span>
 			<select name="minSimilarity" onchange="this.form.submit()">
@@ -93,20 +95,21 @@
 	     back to a full reload that renders the groups. The page is never blocked while it computes. -->
 	<section class="panel section fingerprint-progress" id="similarityProgressRegion"
 			th:if="${similarityComputing}" role="status" data-refresh-ms="3000">
-		<h2 th:text="#{duplicates.similarity.calculating}">Calculando fotos semelhantes…</h2>
+		<h2 th:text="${activeTab == 'videos'} ? #{duplicates.similarity.calculatingVideos} : #{duplicates.similarity.calculating}">Calculando fotos semelhantes…</h2>
 		<p class="muted" th:text="#{duplicates.similarity.calculating.description}">O agrupamento por semelhança roda em segundo plano para não travar a página. Este painel se atualiza automaticamente a cada 3 segundos e os grupos aparecem assim que o cálculo terminar.</p>
 		<p class="progress-text"><strong th:text="|${similarityPercent}%|">0%</strong></p>
 		<div class="fingerprint-progress-bar" role="progressbar" th:aria-label="#{duplicates.progress(${similarityPercent})}"
 				th:attr="aria-valuenow=${similarityPercent},aria-valuemin=0,aria-valuemax=100">
 			<div class="fingerprint-progress-fill" th:style="|width: ${similarityPercent}%|"></div>
 		</div>
-		<p th:if="${similarityTotal > 0}"><strong th:text="${similarityProcessed}">0</strong> <span th:text="#{duplicates.of}">de</span> <strong th:text="${similarityTotal}">0</strong> <span th:text="#{duplicates.photosCompared}">fotos comparadas</span></p>
+		<p th:if="${similarityTotal > 0}"><strong th:text="${similarityProcessed}">0</strong> <span th:text="#{duplicates.of}">de</span> <strong th:text="${similarityTotal}">0</strong> <span th:text="${activeTab == 'videos'} ? #{duplicates.videosCompared} : #{duplicates.photosCompared}">fotos comparadas</span></p>
 		<p th:unless="${similarityTotal > 0}" class="muted" th:text="#{duplicates.similarity.preparing}">Preparando a comparação…</p>
 	</section>
 
 	<div class="panel section" th:if="${groups.isEmpty() and !similarityComputing}">
 		<p th:if="${activeTab == 'exact'}" th:text="#{duplicates.empty.exact}">Nenhum arquivo duplicado encontrado.</p>
 		<p th:if="${activeTab == 'similar'}" th:text="#{duplicates.empty.similar}">Nenhum grupo de fotos semelhantes encontrado com esse nível de semelhança.</p>
+		<p th:if="${activeTab == 'videos'}" th:text="#{duplicates.empty.videos}">Nenhum grupo de vídeos semelhantes encontrado com esse nível de semelhança.</p>
 	</div>
 
 	<div class="panel section table-toolbar pagination-toolbar" th:if="${totalElements > 0}">
@@ -308,7 +311,7 @@
 				<span th:text="#{duplicates.viewFiles}">Ver arquivos</span>
 			</button>
 		</p>
-		<form th:if="${phashFailed > 0}" th:action="@{/app/duplicates/phash/retry}" method="post">
+		<form th:if="${phashFailed > 0}" th:action="@{${retryAction}}" method="post">
 			<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 			<button type="submit" class="secondary" th:text="#{duplicates.retryFailures}">Tentar novamente as falhas</button>
 		</form>

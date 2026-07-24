@@ -26,7 +26,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.DuplicateService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.PhotoSimilarityService;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.VideoSimilarityService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.PhashBacklogService;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.VideoFingerprintBacklogService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.infrastructure.rest.DuplicateController;
 import br.com.jorgemelo.nimbusfilemanager.execution.application.ExecutionQueryService;
 import br.com.jorgemelo.nimbusfilemanager.execution.infrastructure.rest.ExecutionController;
@@ -110,6 +112,8 @@ class ControllersTest {
 		DuplicateService duplicateService = mock(DuplicateService.class);
 		PhotoSimilarityService photoSimilarityService = mock(PhotoSimilarityService.class);
 		PhashBacklogService phashBacklogService = mock(PhashBacklogService.class);
+		VideoSimilarityService videoSimilarityService = mock(VideoSimilarityService.class);
+		VideoFingerprintBacklogService videoFingerprintBacklogService = mock(VideoFingerprintBacklogService.class);
 		ExecutionQueryService executionQueryService = mock(ExecutionQueryService.class);
 		StatisticsService statisticsService = mock(StatisticsService.class);
 		MetadataRebuildRequest metadataRequest = new MetadataRebuildRequest("C:/input", null, null, null, 100, false);
@@ -119,6 +123,7 @@ class ControllersTest {
 		when(duplicateService.groups(pageable, null)).thenReturn(new PageImpl<>(List.of()));
 		when(duplicateService.candidates(pageable, null)).thenReturn(new PageImpl<>(List.of()));
 		when(photoSimilarityService.groups(70, pageable)).thenReturn(new PageImpl<>(List.of()));
+		when(videoSimilarityService.groups(70, pageable)).thenReturn(new PageImpl<>(List.of()));
 		when(statisticsService.errorFileDetails(AnalysisErrorType.UNKNOWN, "path", pageable))
 				.thenReturn(new PageImpl<>(List.of()));
 
@@ -127,7 +132,7 @@ class ControllersTest {
 				new MediaSearchCriteria(FileType.PHOTO, "h264", "folder", "jpg", 2024, 5, 1L, 10L), pageable);
 
 		DuplicateController duplicateController = new DuplicateController(duplicateService, photoSimilarityService,
-				phashBacklogService);
+				phashBacklogService, videoSimilarityService, videoFingerprintBacklogService);
 
 		duplicateController.groups(pageable);
 		duplicateController.files("hash");
@@ -135,6 +140,8 @@ class ControllersTest {
 		duplicateController.candidates(pageable);
 		duplicateController.similarPhotos(70, pageable);
 		duplicateController.similarPhotoFailures();
+		duplicateController.similarVideos(70, pageable);
+		duplicateController.similarVideoFailures();
 
 		ExecutionController executionController = new ExecutionController(executionQueryService);
 		UUID executionId = UUID.randomUUID();

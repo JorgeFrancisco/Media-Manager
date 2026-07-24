@@ -50,20 +50,20 @@ public class DuplicateDeletionService extends LocalizedComponent {
 	private final AppSettingService appSettingService;
 	private final DuplicateDeletionPersistence duplicateDeletionPersistence;
 	private final SecureFileMove secureFileMove;
-	private final PhotoSimilarityService photoSimilarityService;
+	private final SimilarityCaches similarityCaches;
 	private final OperationLockService operationLockService;
 	private final Clock clock;
 
 	public DuplicateDeletionService(CatalogFileRepository catalogFileRepository, ExecutionRepository executionRepository,
 			AppSettingService appSettingService, DuplicateDeletionPersistence duplicateDeletionPersistence,
-			SecureFileMove secureFileMove, PhotoSimilarityService photoSimilarityService,
+			SecureFileMove secureFileMove, SimilarityCaches similarityCaches,
 			OperationLockService operationLockService, Clock clock) {
 		this.catalogFileRepository = catalogFileRepository;
 		this.executionRepository = executionRepository;
 		this.appSettingService = appSettingService;
 		this.duplicateDeletionPersistence = duplicateDeletionPersistence;
 		this.secureFileMove = secureFileMove;
-		this.photoSimilarityService = photoSimilarityService;
+		this.similarityCaches = similarityCaches;
 		this.operationLockService = operationLockService;
 		this.clock = clock;
 	}
@@ -147,11 +147,10 @@ public class DuplicateDeletionService extends LocalizedComponent {
 			progress.update(++processed, total);
 		}
 
-		// Keep the (cached) similar-photos groups consistent without a full recompute:
-		// drop the
-		// just-quarantined photos from the cache so the Duplicados screen reflects the
-		// deletion.
-		photoSimilarityService.evictFromCache(movedIds);
+		// Keep the (cached) similar-photos AND similar-videos groups consistent without
+		// a full recompute: drop the just-quarantined media from both caches so the
+		// Duplicados screen reflects the deletion.
+		similarityCaches.evictAll(movedIds);
 
 		String message = message("backend.duplicates.deletionCompleted", moved, skipped, errors);
 

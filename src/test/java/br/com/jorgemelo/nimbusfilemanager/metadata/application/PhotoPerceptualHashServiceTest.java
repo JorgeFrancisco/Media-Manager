@@ -48,13 +48,6 @@ class PhotoPerceptualHashServiceTest {
 	}
 
 	@Test
-	void maxDistanceUses256BitGeometry() {
-		assertThat(PhotoPerceptualHashService.maxDistanceFor(70)).isEqualTo(76);
-		assertThat(PhotoPerceptualHashService.maxDistanceFor(90)).isEqualTo(25);
-		assertThat(PhotoPerceptualHashService.maxDistanceFor(100)).isZero();
-	}
-
-	@Test
 	void computeBuildsDeterministic256BitPHashAndKeepsLuminanceSample() throws Exception {
 		Path file = Files.writeString(tempDir.resolve("photo.jpg"), "photo");
 

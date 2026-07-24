@@ -82,7 +82,7 @@ class ProcessingCoordinatorBenchmarkTest {
 	private Result timeParallel(List<Integer> items, int workers) {
 		ProcessingMetrics metrics = new ProcessingMetrics();
 
-		ProcessingCoordinator coordinator = new ProcessingCoordinator(new ProcessingProperties(workers, ITEMS, 2, 2),
+		ProcessingCoordinator coordinator = new ProcessingCoordinator(new ProcessingProperties(workers, ITEMS, 2, 2, 2),
 				metrics);
 
 		try {

@@ -13,6 +13,14 @@ public final class FingerprintAlgorithm {
 	/** Current photo fingerprint: 32x32 luminance sample and 256-bit DCT pHash. */
 	public static final String FFMPEG_LANCZOS_PHASH_256_V1 = "FFMPEG_LANCZOS_PHASH_256_V1";
 
+	/**
+	 * Current video fingerprint: several frames sampled at deterministic relative
+	 * positions, each normalized to the same 32x32 luminance sample and 256-bit DCT
+	 * pHash as the photo algorithm. One {@code media_fingerprint} row per frame
+	 * (sample_index = relative position, position_ms = sampled timestamp).
+	 */
+	public static final String FFMPEG_LANCZOS_PHASH_256_FRAMES_V1 = "FFMPEG_LANCZOS_PHASH_256_FRAMES_V1";
+
 	private FingerprintAlgorithm() {
 	}
 }

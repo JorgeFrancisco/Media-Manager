@@ -9,13 +9,14 @@ import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.propertie
 import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.InventoryWatchProperties;
 import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.LocationRebuildProperties;
 import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.UsnJournalProperties;
+import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.VideoSimilarityProperties;
 import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.dto.NimbusFileManagerProperties;
 import br.com.jorgemelo.nimbusfilemanager.shared.infrastructure.config.properties.dto.ProcessingProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties({ NimbusFileManagerProperties.class, BoundaryDatasetProperties.class,
 		ProcessingProperties.class, InventoryWatchProperties.class, LocationRebuildProperties.class,
-		UsnJournalProperties.class })
+		UsnJournalProperties.class, VideoSimilarityProperties.class })
 public class NimbusFileManagerApplication {
 
 	public static void main(String[] args) {

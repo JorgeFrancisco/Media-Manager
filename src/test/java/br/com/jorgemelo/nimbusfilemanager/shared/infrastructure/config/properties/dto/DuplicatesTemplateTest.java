@@ -16,7 +16,8 @@ class DuplicatesTemplateTest {
 
 		assertThat(html).contains("th:lang=\"${#locale.toLanguageTag()}\"", "common(#{duplicates.title}, 'duplicates')",
 				"app(~{::section}, #{duplicates.title})", "th:text=\"#{duplicates.tab.exact}\"",
-				"th:text=\"#{duplicates.tab.similar}\"", "th:data-confirm=\"#{duplicates.rebuild.confirm}\"",
+				"th:text=\"#{duplicates.tab.similar}\"", "th:text=\"#{duplicates.tab.videos}\"",
+				"#{duplicates.rebuild.confirm}", "#{duplicates.rebuild.confirm.videos}",
 				"th:aria-label=\"#{duplicates.progress(${similarityPercent})}\"",
 				"th:aria-label=\"#{duplicates.progress(${phashPercent})}\"",
 				"th:text=\"#{duplicates.delete.confirm.title}\"", "th:text=\"#{duplicates.folder.clear.description}\"",

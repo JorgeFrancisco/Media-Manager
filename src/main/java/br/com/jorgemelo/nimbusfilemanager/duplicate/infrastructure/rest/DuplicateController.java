@@ -12,13 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.DuplicateService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.PhotoSimilarityService;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.VideoSimilarityService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateCandidateGroupResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateFileResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateGroupResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateSummaryResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.SimilarPhotoGroupResponse;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.SimilarVideoGroupResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.PhashBacklogService;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PhotoFingerprintFailureResponse;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.VideoFingerprintBacklogService;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.FingerprintFailureDetail;
 import br.com.jorgemelo.nimbusfilemanager.shared.application.dto.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -29,12 +32,17 @@ public class DuplicateController {
 	private final DuplicateService duplicateService;
 	private final PhotoSimilarityService photoSimilarityService;
 	private final PhashBacklogService phashBacklogService;
+	private final VideoSimilarityService videoSimilarityService;
+	private final VideoFingerprintBacklogService videoFingerprintBacklogService;
 
 	public DuplicateController(DuplicateService duplicateService, PhotoSimilarityService photoSimilarityService,
-			PhashBacklogService phashBacklogService) {
+			PhashBacklogService phashBacklogService, VideoSimilarityService videoSimilarityService,
+			VideoFingerprintBacklogService videoFingerprintBacklogService) {
 		this.duplicateService = duplicateService;
 		this.photoSimilarityService = photoSimilarityService;
 		this.phashBacklogService = phashBacklogService;
+		this.videoSimilarityService = videoSimilarityService;
+		this.videoFingerprintBacklogService = videoFingerprintBacklogService;
 	}
 
 	@GetMapping
@@ -70,7 +78,20 @@ public class DuplicateController {
 
 	@GetMapping("/similar-photos/failures")
 	@Operation(summary = "Returns exhausted photo-fingerprint failures")
-	public List<PhotoFingerprintFailureResponse> similarPhotoFailures() {
+	public List<FingerprintFailureDetail> similarPhotoFailures() {
 		return phashBacklogService.failures();
+	}
+
+	@GetMapping("/similar-videos")
+	@Operation(summary = "Returns groups of visually similar videos", description = "Groups VIDEO files by multi-frame perceptual-hash similarity. minSimilarity is clamped to [70, 100], with 70 as the floor and default.")
+	public PagedResponse<SimilarVideoGroupResponse> similarVideos(@RequestParam(required = false) Integer minSimilarity,
+			@PageableDefault(size = 20) Pageable pageable) {
+		return PagedResponse.from(videoSimilarityService.groups(minSimilarity, pageable));
+	}
+
+	@GetMapping("/similar-videos/failures")
+	@Operation(summary = "Returns exhausted video-fingerprint failures")
+	public List<FingerprintFailureDetail> similarVideoFailures() {
+		return videoFingerprintBacklogService.failures();
 	}
 }

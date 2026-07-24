@@ -40,8 +40,9 @@ import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateExc
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateFileView;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateGroupView;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicatesViewRequest;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.PhashBacklogStatus;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.FingerprintBacklogStatus;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.SimilarPhotoGroupResponse;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.SimilarVideoGroupResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.PhashBacklogAsyncRunner;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.PhashBacklogService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.enums.Reason;
@@ -93,7 +94,10 @@ public class DuplicatesWebController extends LocalizedComponent {
 	private static final Set<String> VIEW_MODES = Set.of("details", "small", "large", "xlarge");
 	private static final String DEFAULT_TAB = "exact";
 	private static final String TAB_SIMILAR = "similar";
-	private static final Set<String> TABS = Set.of(DEFAULT_TAB, TAB_SIMILAR);
+	private static final String TAB_VIDEOS = "videos";
+	private static final Set<String> TABS = Set.of(DEFAULT_TAB, TAB_SIMILAR, TAB_VIDEOS);
+	private static final String PHOTO_ACTION_BASE = "/app/duplicates/phash";
+	private static final String VIDEO_ACTION_BASE = "/app/duplicates/phash-video";
 	private static final String SYSTEM_USERNAME = "system";
 
 	private final DuplicateService duplicateService;
@@ -104,13 +108,14 @@ public class DuplicatesWebController extends LocalizedComponent {
 	private final PhotoSimilarityAsyncRunner photoSimilarityAsyncRunner;
 	private final DuplicateDeletionAsyncRunner duplicateDeletionAsyncRunner;
 	private final DuplicateExclusionService duplicateExclusionService;
+	private final VideoSimilarityWeb videoSimilarityWeb;
 
 	@Autowired
 	public DuplicatesWebController(DuplicateService duplicateService, PhotoSimilarityService photoSimilarityService,
 			PhashBacklogService phashBacklogService, PhashBacklogAsyncRunner phashBacklogAsyncRunner,
 			UserPagePreferenceService userPagePreferenceService, PhotoSimilarityAsyncRunner photoSimilarityAsyncRunner,
 			DuplicateDeletionAsyncRunner duplicateDeletionAsyncRunner,
-			DuplicateExclusionService duplicateExclusionService) {
+			DuplicateExclusionService duplicateExclusionService, VideoSimilarityWeb videoSimilarityWeb) {
 		this.duplicateService = duplicateService;
 		this.photoSimilarityService = photoSimilarityService;
 		this.phashBacklogService = phashBacklogService;
@@ -119,6 +124,7 @@ public class DuplicatesWebController extends LocalizedComponent {
 		this.photoSimilarityAsyncRunner = photoSimilarityAsyncRunner;
 		this.duplicateDeletionAsyncRunner = duplicateDeletionAsyncRunner;
 		this.duplicateExclusionService = duplicateExclusionService;
+		this.videoSimilarityWeb = videoSimilarityWeb;
 	}
 
 	@GetMapping("/app/duplicates")
@@ -128,6 +134,8 @@ public class DuplicatesWebController extends LocalizedComponent {
 
 		boolean similarTab = TAB_SIMILAR.equals(safeTab);
 
+		boolean videosTab = TAB_VIDEOS.equals(safeTab);
+
 		int pageSize = resolvePageSize(request.size(), authentication);
 
 		int safeMinSimilarity = resolveMinSimilarity(request.minSimilarity(), authentication);
@@ -136,7 +144,7 @@ public class DuplicatesWebController extends LocalizedComponent {
 
 		int page = request.page() == null ? 0 : request.page();
 
-		model.addAttribute("activeTab", similarTab ? TAB_SIMILAR : DEFAULT_TAB);
+		model.addAttribute("activeTab", safeTab);
 		model.addAttribute(MIN_SIMILARITY_KEY, safeMinSimilarity);
 		model.addAttribute("minSimilarityFloor", DuplicateConstants.MIN_SIMILARITY_PERCENT);
 		model.addAttribute("similarityOptions", List.of(70, 75, 80, 85, 90, 95, 100));
@@ -165,27 +173,15 @@ public class DuplicatesWebController extends LocalizedComponent {
 			return "app/duplicates";
 		}
 
-		PhashBacklogStatus phash = phashBacklogService.status();
-
-		boolean blockSimilar = similarTab && phash.blocking();
-
-		model.addAttribute("phashPending", phash.pending());
-		model.addAttribute("phashDone", phash.done());
-		model.addAttribute("phashFailed", phash.failed());
-		model.addAttribute("phashTotal", phash.total());
-		model.addAttribute("phashPercent", phash.percent());
-		model.addAttribute("phashEtaSeconds", phashBacklogAsyncRunner.etaSeconds());
-		model.addAttribute("phashBlocking", blockSimilar);
-		model.addAttribute("phashRunning", phashBacklogAsyncRunner.isRunning());
-		model.addAttribute("phashRebuildAvailable", !phashBacklogAsyncRunner.isRunning());
-		model.addAttribute("similarityComputing", false);
-
-		if (blockSimilar) {
-			// Do not load partial similarity groups while fingerprints are still computing.
-			addPageAttributes(model, Page.empty(), List.of());
+		if (videosTab) {
+			renderVideoTab(model, safeMinSimilarity, page, pageSize);
 		} else if (similarTab) {
-			renderSimilarTab(model, safeMinSimilarity, page, pageSize);
+			renderPhotoTab(model, safeMinSimilarity, page, pageSize);
 		} else {
+			setBacklogAttributes(model, phashBacklogService.status(), phashBacklogAsyncRunner.etaSeconds(),
+					phashBacklogAsyncRunner.isRunning(), PHOTO_ACTION_BASE, false);
+			model.addAttribute("similarityComputing", false);
+
 			Page<DuplicateCandidateGroupResponse> exactPage = duplicateService
 					.candidates(PageRequest.of(page, pageSize), MediaTypeFilter.fileTypesOf(typeFilter));
 
@@ -219,6 +215,28 @@ public class DuplicatesWebController extends LocalizedComponent {
 		}
 
 		return "redirect:/app/duplicates?tab=similar";
+	}
+
+	/** Video counterpart of {@link #retryFingerprints()}. */
+	@PostMapping("/app/duplicates/phash-video/retry")
+	public String retryVideoFingerprints() {
+		videoSimilarityWeb.backlogService().resetFailures();
+
+		if (videoSimilarityWeb.backlogRunner().start()) {
+			videoSimilarityWeb.backlogRunner().run();
+		}
+
+		return "redirect:/app/duplicates?tab=videos";
+	}
+
+	/** Video counterpart of {@link #rebuildFingerprints()}. */
+	@PostMapping("/app/duplicates/phash-video/rebuild")
+	public String rebuildVideoFingerprints() {
+		if (videoSimilarityWeb.backlogRunner().prepareRebuild()) {
+			videoSimilarityWeb.backlogRunner().run();
+		}
+
+		return "redirect:/app/duplicates?tab=videos";
 	}
 
 	/**
@@ -262,6 +280,7 @@ public class DuplicatesWebController extends LocalizedComponent {
 		boolean created = duplicateExclusionService.excludeFile(request == null ? null : request.publicId());
 
 		photoSimilarityService.invalidateCache();
+		videoSimilarityWeb.similarityService().invalidateCache();
 
 		return new DuplicateExclusionResponse(created);
 	}
@@ -277,6 +296,7 @@ public class DuplicatesWebController extends LocalizedComponent {
 		boolean created = duplicateExclusionService.excludeFolder(request == null ? null : request.folder());
 
 		photoSimilarityService.invalidateCache();
+		videoSimilarityWeb.similarityService().invalidateCache();
 
 		return new DuplicateExclusionResponse(created);
 	}
@@ -301,7 +321,22 @@ public class DuplicatesWebController extends LocalizedComponent {
 	 * the background runner and shows a "Calculando semelhança…" panel that polls
 	 * until the compute finishes.
 	 */
-	private void renderSimilarTab(Model model, int safeMinSimilarity, int page, int pageSize) {
+	private void renderPhotoTab(Model model, int safeMinSimilarity, int page, int pageSize) {
+		FingerprintBacklogStatus status = phashBacklogService.status();
+
+		boolean block = status.blocking();
+
+		setBacklogAttributes(model, status, phashBacklogAsyncRunner.etaSeconds(), phashBacklogAsyncRunner.isRunning(),
+				PHOTO_ACTION_BASE, block);
+		model.addAttribute("similarityComputing", false);
+
+		if (block) {
+			// Do not load partial similarity groups while fingerprints are still computing.
+			addPageAttributes(model, Page.empty(), List.of());
+
+			return;
+		}
+
 		Optional<Page<SimilarPhotoGroupResponse>> cached = photoSimilarityService.cachedPage(safeMinSimilarity,
 				PageRequest.of(page, pageSize));
 
@@ -323,6 +358,59 @@ public class DuplicatesWebController extends LocalizedComponent {
 		model.addAttribute("similarityPercent", photoSimilarityAsyncRunner.percent());
 		model.addAttribute("similarityProcessed", photoSimilarityAsyncRunner.processed());
 		model.addAttribute("similarityTotal", photoSimilarityAsyncRunner.total());
+	}
+
+	private void renderVideoTab(Model model, int safeMinSimilarity, int page, int pageSize) {
+		FingerprintBacklogStatus status = videoSimilarityWeb.backlogService().status();
+
+		boolean block = status.blocking();
+
+		setBacklogAttributes(model, status, videoSimilarityWeb.backlogRunner().etaSeconds(),
+				videoSimilarityWeb.backlogRunner().isRunning(), VIDEO_ACTION_BASE, block);
+		model.addAttribute("similarityComputing", false);
+
+		if (block) {
+			addPageAttributes(model, Page.empty(), List.of());
+
+			return;
+		}
+
+		Optional<Page<SimilarVideoGroupResponse>> cached = videoSimilarityWeb.similarityService()
+				.cachedPage(safeMinSimilarity, PageRequest.of(page, pageSize));
+
+		if (cached.isPresent()) {
+			Page<SimilarVideoGroupResponse> similarPage = cached.get();
+
+			addPageAttributes(model, similarPage, similarPage.getContent().stream().map(this::toView).toList());
+
+			return;
+		}
+
+		if (videoSimilarityWeb.similarityRunner().start(safeMinSimilarity)) {
+			videoSimilarityWeb.similarityRunner().run(safeMinSimilarity);
+		}
+
+		addPageAttributes(model, Page.empty(), List.of());
+
+		model.addAttribute("similarityComputing", true);
+		model.addAttribute("similarityPercent", videoSimilarityWeb.similarityRunner().percent());
+		model.addAttribute("similarityProcessed", videoSimilarityWeb.similarityRunner().processed());
+		model.addAttribute("similarityTotal", videoSimilarityWeb.similarityRunner().total());
+	}
+
+	private void setBacklogAttributes(Model model, FingerprintBacklogStatus status, long etaSeconds, boolean running,
+			String actionBase, boolean blocking) {
+		model.addAttribute("phashPending", status.pending());
+		model.addAttribute("phashDone", status.done());
+		model.addAttribute("phashFailed", status.failed());
+		model.addAttribute("phashTotal", status.total());
+		model.addAttribute("phashPercent", status.percent());
+		model.addAttribute("phashEtaSeconds", etaSeconds);
+		model.addAttribute("phashBlocking", blocking);
+		model.addAttribute("phashRunning", running);
+		model.addAttribute("phashRebuildAvailable", !running);
+		model.addAttribute("retryAction", actionBase + "/retry");
+		model.addAttribute("rebuildAction", actionBase + "/rebuild");
 	}
 
 	private void addPageAttributes(Model model, Page<?> page, List<DuplicateGroupView> groups) {
@@ -349,6 +437,17 @@ public class DuplicatesWebController extends LocalizedComponent {
 				: message("backend.duplicates.similarGroup.many", group.files());
 
 		String badge = message("backend.duplicates.similarBadge", group.similarityPercent(),
+				group.wastedSize().formatted());
+
+		return new DuplicateGroupView(group.groupId(), header, badge,
+				toFileViews(group.keep(), group.deleteCandidates(), group.reviewCandidates()));
+	}
+
+	private DuplicateGroupView toView(SimilarVideoGroupResponse group) {
+		String header = group.files() == 1 ? message("backend.duplicates.similarVideoGroup.one", group.files())
+				: message("backend.duplicates.similarVideoGroup.many", group.files());
+
+		String badge = message("backend.duplicates.similarVideoBadge", group.similarityPercent(),
 				group.wastedSize().formatted());
 
 		return new DuplicateGroupView(group.groupId(), header, badge,

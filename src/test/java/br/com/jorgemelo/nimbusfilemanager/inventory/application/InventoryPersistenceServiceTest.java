@@ -321,7 +321,7 @@ class InventoryPersistenceServiceTest {
 	private InventoryPersistenceService service() {
 		if (coordinator == null) {
 			// Single worker keeps extraction order deterministic for these unit tests.
-			coordinator = new ProcessingCoordinator(new ProcessingProperties(1, 8, 2, 2), new ProcessingMetrics());
+			coordinator = new ProcessingCoordinator(new ProcessingProperties(1, 8, 2, 2, 2), new ProcessingMetrics());
 		}
 
 		return new InventoryPersistenceService(catalogFileRepository, catalogFileMapper, mediaLocationService, coordinator,

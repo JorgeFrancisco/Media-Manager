@@ -38,6 +38,9 @@ public class ExternalToolGate {
 		semaphores.put(ExternalToolCategory.FFMPEG_PHOTO_HASH,
 				new Semaphore(properties.ffmpegPhotoHashLimitOrDefault(), true));
 
+		semaphores.put(ExternalToolCategory.FFMPEG_VIDEO_FRAME,
+				new Semaphore(properties.ffmpegVideoFrameLimitOrDefault(), true));
+
 		semaphores.put(ExternalToolCategory.FFPROBE_VIDEO,
 				new Semaphore(properties.ffprobeVideoLimitOrDefault(), true));
 	}

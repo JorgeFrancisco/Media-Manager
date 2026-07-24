@@ -9,17 +9,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.constants.DuplicateConstants;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.constants.FingerprintAlgorithm;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.CachedGroups;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateCandidateFileResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DuplicateFileResponse;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.GroupParts;
@@ -40,11 +37,12 @@ import br.com.jorgemelo.nimbusfilemanager.shared.util.PageUtils;
  * Finds visually related photos in two stages: a 256-bit pHash cheaply rejects
  * unrelated pairs, then SSIM confirms candidates and supplies the percentage
  * shown in the UI. A pHash match is never described as an equality or
- * percentage.
+ * percentage. The heavy grouping is cached per threshold by the shared
+ * {@link SimilarityGroupCache}.
  */
 @Service
 @Transactional(readOnly = true)
-public class PhotoSimilarityService {
+public class PhotoSimilarityService implements SimilarityGrouping {
 
 	/** Safety cap while grouping remains an in-memory O(n²) operation. */
 	static final int MAX_CANDIDATES = 8000;
@@ -64,12 +62,11 @@ public class PhotoSimilarityService {
 	private final DuplicateExclusionService duplicateExclusionService;
 
 	/**
-	 * Caches the heavy grouping (clustering + SSIM) per similarity threshold.
-	 * Invalidated automatically when the fingerprint set changes (via
-	 * {@link #fingerprintSignature()}), so paginating or re-opening the Fotos
-	 * Semelhantes tab is instant instead of recomputing everything each request.
+	 * Caches the heavy grouping (clustering + SSIM) per similarity threshold,
+	 * invalidated automatically when the fingerprint set changes, so paginating or
+	 * re-opening the Fotos Semelhantes tab is instant instead of recomputing.
 	 */
-	private final Map<Integer, CachedGroups> cache = new ConcurrentHashMap<>();
+	private final SimilarityGroupCache<SimilarPhotoGroupResponse> cache;
 
 	public PhotoSimilarityService(MediaFingerprintRepository mediaFingerprintRepository,
 			DuplicateGroupAssembler duplicateGroupAssembler, PhotoSsimService photoSsimService,
@@ -81,65 +78,49 @@ public class PhotoSimilarityService {
 		this.appSettingService = appSettingService;
 		this.properties = properties;
 		this.duplicateExclusionService = duplicateExclusionService;
+		this.cache = new SimilarityGroupCache<>(this::fingerprintSignature, this::maxPageSize);
 	}
 
 	/**
 	 * Synchronous read used by tests and as a fallback: returns the cached page,
 	 * computing (blocking) on a miss. The Duplicados screen does NOT use this - it
-	 * uses {@link #cachedPage} plus the background
-	 * {@code PhotoSimilarityAsyncRunner} so the page never blocks on the heavy
-	 * grouping.
+	 * uses {@link #cachedPage} plus the background {@code PhotoSimilarityAsyncRunner}
+	 * so the page never blocks on the heavy grouping.
 	 */
 	public Page<SimilarPhotoGroupResponse> groups(Integer minSimilarityPercent, Pageable pageable) {
 		int minimumSsim = clampSimilarity(minSimilarityPercent);
 
-		if (!isCached(minimumSsim)) {
+		if (!cache.isCached(minimumSsim)) {
 			computeAndCache(minimumSsim, (_, _) -> {
 			});
 		}
 
-		return cachedPage(minimumSsim, pageable)
-				.orElseGet(() -> paginate(List.of(), PageUtils.capped(pageable, maxPageSize())));
+		return cache.cachedPage(minimumSsim, pageable).orElseGet(() -> cache.emptyPage(pageable));
 	}
 
-	/**
-	 * Whether the grouping for this threshold is already cached for the current
-	 * fingerprint set.
-	 */
+	/** Whether the grouping for this threshold is already cached. */
+	@Override
 	public boolean isCached(int minSimilarityPercent) {
-		int minimumSsim = clampSimilarity(minSimilarityPercent);
-
-		CachedGroups cached = cache.get(minimumSsim);
-
-		return cached != null && cached.signature().equals(fingerprintSignature());
+		return cache.isCached(clampSimilarity(minSimilarityPercent));
 	}
 
 	/**
 	 * Page of the cached grouping for this threshold, or empty when it has not been
-	 * computed yet - no blocking compute happens here, so the caller can show a
-	 * "computing" state and let the background runner do the work.
+	 * computed yet - no blocking compute happens here.
 	 */
 	public Optional<Page<SimilarPhotoGroupResponse>> cachedPage(int minSimilarityPercent, Pageable pageable) {
-		int minimumSsim = clampSimilarity(minSimilarityPercent);
-
-		CachedGroups cached = cache.get(minimumSsim);
-
-		if (cached == null || !cached.signature().equals(fingerprintSignature())) {
-			return Optional.empty();
-		}
-
-		return Optional.of(paginate(cached.groups(), PageUtils.capped(pageable, maxPageSize())));
+		return cache.cachedPage(clampSimilarity(minSimilarityPercent), pageable);
 	}
 
 	/**
 	 * Runs the heavy grouping (clustering + SSIM) for a threshold and caches the
-	 * result, reporting how many candidates have been processed to {@code progress}
-	 * so a background runner can show a bar.
+	 * result, reporting how many candidates have been processed to {@code progress}.
 	 */
-	void computeAndCache(int minSimilarityPercent, SimilarityProgressCallback progress) {
+	@Override
+	public void computeAndCache(int minSimilarityPercent, SimilarityProgressCallback progress) {
 		int minimumSsim = clampSimilarity(minSimilarityPercent);
 
-		String signature = fingerprintSignature();
+		String signature = cache.currentSignature();
 
 		List<PhotoHashRawResponse> candidates = withoutExcluded(
 				mediaFingerprintRepository
@@ -159,39 +140,30 @@ public class PhotoSimilarityService {
 				.sorted((first, second) -> Long.compare(second.wastedSize().bytes(), first.wastedSize().bytes()))
 				.toList();
 
-		cache.put(minimumSsim, new CachedGroups(signature, responses));
+		cache.put(minimumSsim, signature, responses);
 	}
 
 	/**
 	 * Drops the given photos from the cached groupings after a soft-delete, so a
 	 * follow-up reload shows the updated groups without recomputing. A group that
-	 * loses any member is removed entirely (a pair becomes a single and disappears;
-	 * a larger group is conservatively dropped and rebuilt on the next full
-	 * recompute). The signature is refreshed to the post-delete state so the pruned
-	 * result stays a cache hit instead of an immediate miss.
+	 * loses any member is removed entirely.
 	 */
 	void evictFromCache(Collection<UUID> removedPublicIds) {
-		if (removedPublicIds == null || removedPublicIds.isEmpty() || cache.isEmpty()) {
+		if (removedPublicIds == null || removedPublicIds.isEmpty()) {
 			return;
 		}
 
 		Set<UUID> removed = new HashSet<>(removedPublicIds);
 
-		String signature = fingerprintSignature();
-
-		cache.replaceAll((_, cached) -> new CachedGroups(signature,
-				cached.groups().stream().filter(group -> retains(group, removed)).toList()));
+		cache.evict(group -> retains(group, removed));
 	}
 
 	/**
-	 * Clears every cached grouping so the next Fotos Semelhantes load recomputes
-	 * from scratch. Used when the comparison-exclusion lists change: the
-	 * fingerprint set is untouched (so the signature would not move on its own),
-	 * but the excluded files/folders must be dropped from the groups on the next
-	 * compute.
+	 * Clears every cached grouping so the next Fotos Semelhantes load recomputes.
+	 * Used when the comparison-exclusion lists change.
 	 */
 	public void invalidateCache() {
-		cache.clear();
+		cache.invalidate();
 	}
 
 	/**
@@ -213,10 +185,8 @@ public class PhotoSimilarityService {
 
 	private boolean isUnderExcludedFolder(String folder, List<String> excludedFolders) {
 		// Excluded folders are stored separator-agnostic (forward slashes); a
-		// candidate's
-		// current folder (NOT NULL in the schema) is OS-native, so normalize it the
-		// same
-		// way before matching the folder itself or any subfolder under it.
+		// candidate's current folder (NOT NULL in the schema) is OS-native, so
+		// normalize it the same way before matching the folder itself or any subfolder.
 		String normalized = folder.replace('\\', '/');
 
 		for (String excluded : excludedFolders) {
@@ -336,14 +306,6 @@ public class PhotoSimilarityService {
 	private DuplicateFileResponse toFileResponse(PhotoHashRawResponse raw) {
 		return new DuplicateFileResponse(raw.id(), raw.fileName(), raw.extension(), "PHOTO",
 				SizeResponse.of(raw.sizeBytes()), raw.currentPath(), raw.currentFolder(), raw.modifiedAt());
-	}
-
-	private Page<SimilarPhotoGroupResponse> paginate(List<SimilarPhotoGroupResponse> all, Pageable pageable) {
-		int start = Math.min((int) pageable.getOffset(), all.size());
-
-		int end = Math.min(start + pageable.getPageSize(), all.size());
-
-		return new PageImpl<>(all.subList(start, end), pageable, all.size());
 	}
 
 	private int clampSimilarity(Integer requested) {

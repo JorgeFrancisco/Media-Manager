@@ -22,6 +22,14 @@ public enum ExternalToolCategory {
 	 */
 	FFMPEG_PHOTO_HASH,
 
+	/**
+	 * ffmpeg invoked once per video to extract and normalize several frames for the
+	 * video's per-frame 256-bit pHash and SSIM samples. Kept separate from
+	 * {@link #FFMPEG_PHOTO_HASH} because a multi-frame decode is heavier than a
+	 * single-frame one and must be throttled on its own.
+	 */
+	FFMPEG_VIDEO_FRAME,
+
 	/** ffprobe invoked to read a video's stream/format metadata. */
 	FFPROBE_VIDEO
 }

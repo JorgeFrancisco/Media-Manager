@@ -47,12 +47,12 @@ class DuplicateDeletionServiceTest {
 	private final ExecutionRepository executionRepository = mock(ExecutionRepository.class);
 	private final AppSettingService appSettingService = mock(AppSettingService.class);
 	private final DuplicateDeletionPersistence persistence = mock(DuplicateDeletionPersistence.class);
-	private final PhotoSimilarityService photoSimilarityService = mock(PhotoSimilarityService.class);
+	private final SimilarityCaches similarityCaches = mock(SimilarityCaches.class);
 	private final OperationLockService operationLockService = mock(OperationLockService.class);
 	private final OperationLock operationLock = mock(OperationLock.class);
 	private final DuplicateDeletionService service = new DuplicateDeletionService(catalogFileRepository,
 			executionRepository, appSettingService, persistence,
-			new SecureFileMove(new OrganizationMoveVerifier(new FileHashService())), photoSimilarityService,
+			new SecureFileMove(new OrganizationMoveVerifier(new FileHashService())), similarityCaches,
 			operationLockService, Clock.systemDefaultZone());
 
 	DuplicateDeletionServiceTest() {
@@ -157,7 +157,7 @@ class DuplicateDeletionServiceTest {
 
 		DuplicateDeletionService integrityFailingService = new DuplicateDeletionService(catalogFileRepository,
 				executionRepository, appSettingService, persistence, new SecureFileMove(verifier),
-				photoSimilarityService, operationLockService, Clock.systemDefaultZone());
+				similarityCaches, operationLockService, Clock.systemDefaultZone());
 
 		configureTrash(trash);
 

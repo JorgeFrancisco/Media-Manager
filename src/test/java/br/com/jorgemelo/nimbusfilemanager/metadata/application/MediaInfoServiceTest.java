@@ -397,7 +397,7 @@ class MediaInfoServiceTest {
 	}
 
 	private ExternalToolGate gate() {
-		return new ExternalToolGate(new ProcessingProperties(2, 8, 2, 2), new ProcessingMetrics());
+		return new ExternalToolGate(new ProcessingProperties(2, 8, 2, 2, 2), new ProcessingMetrics());
 	}
 
 	private NimbusFileManagerProperties properties() {

@@ -41,7 +41,7 @@ Project started on July 5, 2026.
 - Optional SHA-256 and MD5 calculation in a single file read.
 - Metadata extraction from filesystem, EXIF, filename patterns and video streams.
 - Fully offline GPS reverse geocoding based on administrative boundaries (point-in-polygon), persisted as reusable media metadata.
-- Duplicate detection using SHA-256.
+- Duplicate detection using SHA-256, plus visual similarity for photos and videos (perceptual hashing + SSIM).
 - Statistics and paginated media search.
 - Timeline screen for browsing media grouped by date.
 - Map screen plotting geo-referenced media: one aggregated pin per location (EXIF media at their real coordinate rounded to ~11 m, coordinate-less media at their administrative region's representative point), each opening the paginated media captured there.
@@ -810,11 +810,15 @@ If `refresh` is empty or omitted, only `DATE` is rebuilt by default.
 
 ## Duplicates
 
+Three tabs: byte-identical duplicates (SHA-256), visually **similar photos** (256-bit DCT pHash confirmed by SSIM) and visually **similar videos**. Video similarity samples several frames at deterministic relative positions in a single ffmpeg pass, hashes each with the same pHash as photos, and matches videos frame-for-frame with a trimmed-mean aggregation plus a concordant-frame quorum — robust to re-encoding, bitrate, resolution, small duration differences and compression. Both similarity kinds are derived off-inventory by a shared background fingerprint backlog, and new algorithms plug in via the `VideoSimilarityAlgorithm` contract without touching the orchestrator.
+
 ```bash
 curl "http://localhost:8088/api/duplicates/summary"
 curl "http://localhost:8088/api/duplicates?page=0&size=50"
 curl "http://localhost:8088/api/duplicates/{sha256}/files"
 curl "http://localhost:8088/api/duplicates/candidates?page=0&size=50"
+curl "http://localhost:8088/api/duplicates/similar-photos?minSimilarity=70&page=0&size=20"
+curl "http://localhost:8088/api/duplicates/similar-videos?minSimilarity=70&page=0&size=20"
 ```
 
 Example summary:
@@ -882,12 +886,13 @@ curl "http://localhost:8088/api/statistics/errors/files/details"
 
 ## Database Migrations
 
-Flyway applies schema changes at startup. The schema was squashed into a single consolidated baseline (`V1__initial_schema.sql`, on 2026-07-12 for a fresh-database reset); later changes are added as new versions on top of it (currently up to `V2__catalog_file_lifecycle_changed_at.sql`, which adds the retention anchor for the catalog missing-record purge). Example startup log for a new database:
+Flyway applies schema changes at startup. The schema was squashed into a single consolidated baseline (`V1__initial_schema.sql`, on 2026-07-12 for a fresh-database reset); later changes are added as new versions on top of it (currently up to `V3__media_fingerprint_video_payload.sql`, which extends the `media_fingerprint` payload check so the multi-frame video fingerprint algorithm is validated alongside the photo one; `V2__catalog_file_lifecycle_changed_at.sql` adds the retention anchor for the catalog missing-record purge). Example startup log for a new database:
 
 ```text
 Migrating schema "public" to version "1 - initial schema"
 Migrating schema "public" to version "2 - catalog file lifecycle changed at"
-Successfully applied 2 migrations to schema "public", now at version v2
+Migrating schema "public" to version "3 - media fingerprint video payload"
+Successfully applied 3 migrations to schema "public", now at version v3
 ```
 
 Check applied migrations with:
@@ -967,8 +972,8 @@ Run unit/integration tests with JaCoCo:
 Most recent clean local build (PostgreSQL):
 
 ```text
-Tests:       1457 run, 0 failures, 0 errors, 9 skipped
-JaCoCo:      96.03% instruction, 85.81% branch, 95.32% line, 96.35% method, 99.68% class
+Tests:       1515 run, 0 failures, 0 errors, 9 skipped
+JaCoCo:      95.87% instruction, 85.61% branch, 95.26% line, 96.09% method, 99.70% class
 ```
 
 The 9 skipped tests are OS-dependent (symbolic-link / POSIX-permission) cases that

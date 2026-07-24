@@ -48,7 +48,9 @@ class JavaScriptI18nTest {
 
 		assertThat(settings).contains("#{settings.geo.removeConfirm}", "#{settings.exec.cleanupAgeConfirm}",
 				"#{settings.exec.cleanupKeepConfirm}");
-		assertThat(duplicates).contains("th:data-confirm=\"#{duplicates.rebuild.confirm}\"");
+		// The rebuild confirm is a Thymeleaf message expression, per-tab (photo/video).
+		assertThat(duplicates).contains("th:data-confirm=", "#{duplicates.rebuild.confirm}",
+				"#{duplicates.rebuild.confirm.videos}");
 		assertThat(settings + duplicates).doesNotContain("return confirm('");
 	}
 

@@ -85,6 +85,7 @@ Não é expressável no `editor/.editorconfig` nem imposto de forma confiável p
 - **Imports sempre organizados** antes de concluir a tarefa. Remover todos os imports não utilizados, adicionar os necessários e organizar os imports para produzir exatamente o mesmo resultado que o Eclipse (*Organize Imports* / Ctrl+Shift+O) geraria, respeitando a configuração do projeto em `editor/eclipsejava.importorder` (grupos `java`, `javax`, `org`, `com`, e por fim os demais — `br.com.*`, `jakarta.*`, `lombok.*`… — num único grupo alfabético; estáticos primeiro; grupos separados por uma linha em branco). Nunca deixar imports não usados nem utilizar ordenação diferente da gerada pelo Eclipse.
 - **Sem nomes totalmente qualificados inline:** referenciar tipos e membros estáticos pelo nome simples com `import` (ex.: `AtomicBoolean`, não `java.util.concurrent.atomic.AtomicBoolean`; `doThrow(...)` com `import static`, não `org.mockito.Mockito.doThrow(...)`).
 - **Nomes de teste** em camelCase descrevendo o comportamento verificado (ex.: `raisesWhenAKeyIsAbsentFromTheBaseBundle`).
+- **Variável não nomeada (`_`) para binding não usado.** Todo parâmetro de lambda que **não é referenciado** no corpo usa o nome não nomeado `_`, nunca um nome real que se ignora (`e`, `x`, `ignored`) nem um `_` prefixado (`_x`). A mesma regra vale para os demais bindings não usados: variável de `catch`, componentes de pattern (`instanceof`/`switch`) e variável de `for`. Ex.: `(_, _) -> {}`, `.map(_ -> Optional.empty())`, `catch (IOException _)`. O projeto usa Java 25, que suporta `_` plenamente, então o parâmetro fica autoexplicativo (sinaliza "de propósito não usado") e não gera warning de variável não utilizada. Quando **mais de um** binding não usado coexiste no mesmo escopo, todos são `_` (a linguagem permite repetir `_`).
 - **Javadoc** apenas para explicar o *porquê* de decisões não óbvias, nunca para repetir o óbvio.
 
 ---
@@ -283,7 +284,7 @@ Antes de concluir qualquer tarefa, validar os arquivos criados ou modificados qu
 - Não ocultar warnings com `@SuppressWarnings`, exclusões de análise ou alteração das configurações das ferramentas, salvo quando houver justificativa técnica documentada.
 - Fechar corretamente recursos que implementem `AutoCloseable`, preferencialmente com `try-with-resources`.
 - Declarar `serialVersionUID` em exceções e demais classes serializáveis quando aplicável.
-- Utilizar variáveis não nomeadas (`_`) para parâmetros intencionalmente não utilizados (`catch`, lambdas etc.) quando suportado pela versão do Java adotada pelo projeto.
+- Usar a variável não nomeada `_` para todo parâmetro de lambda, variável de `catch`, componente de pattern ou variável de `for` não utilizado (ver *Variável não nomeada* em Estilo de código → Convenções); além de deixar a intenção explícita, elimina o warning de variável/parâmetro não usado.
 
 ---
 

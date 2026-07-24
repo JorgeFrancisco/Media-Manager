@@ -16,10 +16,15 @@ import br.com.jorgemelo.nimbusfilemanager.duplicate.application.DuplicateExclusi
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.DuplicateService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.PhotoSimilarityAsyncRunner;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.PhotoSimilarityService;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.PhashBacklogStatus;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.VideoSimilarityAsyncRunner;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.VideoSimilarityService;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.FingerprintBacklogStatus;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.PhashBacklogAsyncRunner;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.PhashBacklogService;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.VideoFingerprintBacklogAsyncRunner;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.fingerprint.VideoFingerprintBacklogService;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.infrastructure.web.DuplicatesWebController;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.infrastructure.web.VideoSimilarityWeb;
 import br.com.jorgemelo.nimbusfilemanager.preferences.application.UserPagePreferenceService;
 
 /**
@@ -36,16 +41,26 @@ public final class Fixture {
 	private final PhotoSimilarityAsyncRunner similarityRunner = mock(PhotoSimilarityAsyncRunner.class);
 	public final DuplicateDeletionAsyncRunner deletionRunner = mock(DuplicateDeletionAsyncRunner.class);
 	public final DuplicateExclusionService exclusions = mock(DuplicateExclusionService.class);
+	public final VideoSimilarityService videoSimilarity = mock(VideoSimilarityService.class);
+	public final VideoSimilarityAsyncRunner videoSimilarityRunner = mock(VideoSimilarityAsyncRunner.class);
+	public final VideoFingerprintBacklogService videoBacklog = mock(VideoFingerprintBacklogService.class);
+	public final VideoFingerprintBacklogAsyncRunner videoBacklogRunner = mock(VideoFingerprintBacklogAsyncRunner.class);
 
 	public Fixture() {
-		when(phash.status()).thenReturn(new PhashBacklogStatus(0, 0, 0));
+		when(phash.status()).thenReturn(new FingerprintBacklogStatus(0, 0, 0));
+		when(videoBacklog.status()).thenReturn(new FingerprintBacklogStatus(0, 0, 0));
 		when(preferences.find(any(), eq(DuplicatesWebController.PAGE_KEY))).thenReturn(Map.of());
 		when(duplicates.candidates(any(), any())).thenReturn(Page.empty());
 		when(similarity.cachedPage(anyInt(), any())).thenReturn(Optional.of(Page.empty()));
+		when(videoSimilarity.cachedPage(anyInt(), any())).thenReturn(Optional.of(Page.empty()));
 	}
 
 	public DuplicatesWebController controller() {
 		return new DuplicatesWebController(duplicates, similarity, phash, phashRunner, preferences,
-				similarityRunner, deletionRunner, exclusions);
+				similarityRunner, deletionRunner, exclusions, videoSimilarityWeb());
+	}
+
+	private VideoSimilarityWeb videoSimilarityWeb() {
+		return new VideoSimilarityWeb(videoSimilarity, videoSimilarityRunner, videoBacklog, videoBacklogRunner);
 	}
 }

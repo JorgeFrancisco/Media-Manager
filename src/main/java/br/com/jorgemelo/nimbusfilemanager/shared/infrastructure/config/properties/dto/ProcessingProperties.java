@@ -20,7 +20,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "nimbus-file-manager.processing")
 public record ProcessingProperties(Integer workers, Integer queueCapacity, Integer ffmpegPhotoHashLimit,
-		Integer ffprobeVideoLimit) {
+		Integer ffmpegVideoFrameLimit, Integer ffprobeVideoLimit) {
 
 	private static final Logger log = LoggerFactory.getLogger(ProcessingProperties.class);
 
@@ -33,6 +33,7 @@ public record ProcessingProperties(Integer workers, Integer queueCapacity, Integ
 	public static final int MAX_QUEUE_CAPACITY = 100_000;
 
 	public static final int DEFAULT_FFMPEG_PHOTO_HASH_LIMIT = 4;
+	public static final int DEFAULT_FFMPEG_VIDEO_FRAME_LIMIT = 2;
 	public static final int DEFAULT_FFPROBE_VIDEO_LIMIT = 2;
 	public static final int MIN_EXTERNAL_LIMIT = 1;
 	public static final int MAX_EXTERNAL_LIMIT = 32;
@@ -48,6 +49,11 @@ public record ProcessingProperties(Integer workers, Integer queueCapacity, Integ
 
 	public int ffmpegPhotoHashLimitOrDefault() {
 		return normalize("ffmpegPhotoHashLimit", ffmpegPhotoHashLimit, DEFAULT_FFMPEG_PHOTO_HASH_LIMIT,
+				MIN_EXTERNAL_LIMIT, MAX_EXTERNAL_LIMIT);
+	}
+
+	public int ffmpegVideoFrameLimitOrDefault() {
+		return normalize("ffmpegVideoFrameLimit", ffmpegVideoFrameLimit, DEFAULT_FFMPEG_VIDEO_FRAME_LIMIT,
 				MIN_EXTERNAL_LIMIT, MAX_EXTERNAL_LIMIT);
 	}
 

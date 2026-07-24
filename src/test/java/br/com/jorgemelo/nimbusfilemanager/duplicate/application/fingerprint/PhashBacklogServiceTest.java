@@ -24,13 +24,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.constants.DuplicateConstants;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DrainResult;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.PhashBacklogStatus;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.FingerprintBacklogStatus;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.model.FingerprintFailure;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.model.MediaFingerprint;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.FingerprintFailureRepository;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.MediaFingerprintRepository;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PendingPhoto;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PhotoFingerprintFailureResponse;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.FingerprintFailureDetail;
 import br.com.jorgemelo.nimbusfilemanager.execution.application.ExecutionQueryService;
 import br.com.jorgemelo.nimbusfilemanager.execution.application.dto.ExecutionResponse;
 import br.com.jorgemelo.nimbusfilemanager.metadata.application.PhotoPerceptualHashService;
@@ -58,7 +58,7 @@ class PhashBacklogServiceTest {
 	private PhashBacklogService service() {
 		return new PhashBacklogService(mediaFingerprintRepository, fingerprintFailureRepository,
 				photoPerceptualHashService,
-				new ProcessingCoordinator(new ProcessingProperties(1, 8, 1, 1), new ProcessingMetrics()),
+				new ProcessingCoordinator(new ProcessingProperties(1, 8, 1, 1, 1), new ProcessingMetrics()),
 				executionQueryService, mock(PlatformTransactionManager.class), Clock.systemDefaultZone());
 	}
 
@@ -129,7 +129,7 @@ class PhashBacklogServiceTest {
 		when(mediaFingerprintRepository.countPendingPhotos(PhashBacklogService.KIND, DuplicateConstants.ALGORITHM,
 				PhashBacklogService.MAX_ATTEMPTS)).thenReturn(5L);
 
-		PhashBacklogStatus status = service().status();
+		FingerprintBacklogStatus status = service().status();
 
 		Assertions.assertThat(status.done()).isEqualTo(10);
 		Assertions.assertThat(status.failed()).isEqualTo(2);
@@ -173,8 +173,8 @@ class PhashBacklogServiceTest {
 
 	@Test
 	void failuresReturnsOnlyTheExhaustedRowsWithTheirPaths() {
-		List<PhotoFingerprintFailureResponse> expected = List
-				.of(new PhotoFingerprintFailureResponse("C:/photos/broken.jpg", "decode failed"));
+		List<FingerprintFailureDetail> expected = List
+				.of(new FingerprintFailureDetail("C:/photos/broken.jpg", "decode failed"));
 
 		when(fingerprintFailureRepository.findExhaustedWithPath(PhashBacklogService.KIND, DuplicateConstants.ALGORITHM,
 				PhashBacklogService.MAX_ATTEMPTS, PhashBacklogService.UNSUPPORTED_PREFIX)).thenReturn(expected);

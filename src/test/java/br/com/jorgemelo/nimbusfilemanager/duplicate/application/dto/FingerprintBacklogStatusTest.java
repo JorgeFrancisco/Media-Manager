@@ -4,11 +4,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 
-class PhashBacklogStatusTest {
+class FingerprintBacklogStatusTest {
 
 	@Test
 	void totalBlockingAndPercentWhilePending() {
-		PhashBacklogStatus status = new PhashBacklogStatus(5, 3, 2);
+		FingerprintBacklogStatus status = new FingerprintBacklogStatus(5, 3, 2);
 
 		Assertions.assertThat(status.total()).isEqualTo(10);
 		Assertions.assertThat(status.blocking()).isTrue();
@@ -17,7 +17,7 @@ class PhashBacklogStatusTest {
 
 	@Test
 	void unblocksAtHundredPercentEvenWithFailures() {
-		PhashBacklogStatus status = new PhashBacklogStatus(0, 8, 2);
+		FingerprintBacklogStatus status = new FingerprintBacklogStatus(0, 8, 2);
 
 		Assertions.assertThat(status.blocking()).isFalse();
 		Assertions.assertThat(status.percent()).isEqualTo(100);
@@ -25,7 +25,7 @@ class PhashBacklogStatusTest {
 
 	@Test
 	void emptyLibraryIsComplete() {
-		PhashBacklogStatus status = new PhashBacklogStatus(0, 0, 0);
+		FingerprintBacklogStatus status = new FingerprintBacklogStatus(0, 0, 0);
 
 		Assertions.assertThat(status.blocking()).isFalse();
 		Assertions.assertThat(status.percent()).isEqualTo(100);

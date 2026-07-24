@@ -18,7 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.DrainResult;
-import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.PhashBacklogStatus;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.application.dto.FingerprintBacklogStatus;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.enums.FingerprintJobStatus;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.model.FingerprintJobRun;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.FingerprintJobRunRepository;
@@ -48,7 +48,7 @@ class PhashBacklogAsyncRunnerTest {
 	@Test
 	void startRefusesWhenNothingIsPending() {
 		when(backlogService.inventoryActive()).thenReturn(false);
-		when(backlogService.status()).thenReturn(new PhashBacklogStatus(0, 10, 0));
+		when(backlogService.status()).thenReturn(new FingerprintBacklogStatus(0, 10, 0));
 
 		Assertions.assertThat(runner().start()).isFalse();
 
@@ -60,7 +60,7 @@ class PhashBacklogAsyncRunnerTest {
 		PhashBacklogAsyncRunner runner = runner();
 
 		when(backlogService.inventoryActive()).thenReturn(false);
-		when(backlogService.status()).thenReturn(new PhashBacklogStatus(5, 0, 0));
+		when(backlogService.status()).thenReturn(new FingerprintBacklogStatus(5, 0, 0));
 		when(jobRunRepository.save(any())).thenReturn(runWithId(7L));
 
 		Assertions.assertThat(runner.start()).isTrue();
@@ -73,7 +73,7 @@ class PhashBacklogAsyncRunnerTest {
 		PhashBacklogAsyncRunner runner = runner();
 
 		when(backlogService.inventoryActive()).thenReturn(false);
-		when(backlogService.status()).thenReturn(new PhashBacklogStatus(5, 0, 0));
+		when(backlogService.status()).thenReturn(new FingerprintBacklogStatus(5, 0, 0));
 		when(jobRunRepository.save(any())).thenReturn(runWithId(9L));
 
 		Assertions.assertThat(runner.etaSeconds()).isEqualTo(-1);
@@ -86,7 +86,7 @@ class PhashBacklogAsyncRunnerTest {
 		PhashBacklogAsyncRunner runner = runner();
 
 		when(backlogService.inventoryActive()).thenReturn(false);
-		when(backlogService.status()).thenReturn(new PhashBacklogStatus(12, 0, 0));
+		when(backlogService.status()).thenReturn(new FingerprintBacklogStatus(12, 0, 0));
 		when(jobRunRepository.save(any())).thenReturn(runWithId(8L));
 
 		Assertions.assertThat(runner.prepareRebuild()).isTrue();
@@ -111,7 +111,7 @@ class PhashBacklogAsyncRunnerTest {
 		FingerprintJobRun run = runWithId(7L);
 
 		when(backlogService.inventoryActive()).thenReturn(false);
-		when(backlogService.status()).thenReturn(new PhashBacklogStatus(5, 0, 0));
+		when(backlogService.status()).thenReturn(new FingerprintBacklogStatus(5, 0, 0));
 		when(jobRunRepository.save(any())).thenReturn(run);
 		when(jobRunRepository.findById(7L)).thenReturn(Optional.of(run));
 		when(backlogService.drainPending(any(), any())).thenAnswer(invocation -> {
@@ -158,7 +158,7 @@ class PhashBacklogAsyncRunnerTest {
 		FingerprintJobRun run = runWithId(11L);
 
 		when(backlogService.inventoryActive()).thenReturn(false);
-		when(backlogService.status()).thenReturn(new PhashBacklogStatus(5, 0, 0));
+		when(backlogService.status()).thenReturn(new FingerprintBacklogStatus(5, 0, 0));
 		when(jobRunRepository.save(any())).thenReturn(run);
 		when(jobRunRepository.findById(11L)).thenReturn(Optional.of(run));
 

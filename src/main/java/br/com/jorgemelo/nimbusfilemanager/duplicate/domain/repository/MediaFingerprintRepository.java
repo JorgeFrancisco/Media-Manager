@@ -11,7 +11,9 @@ import org.springframework.data.repository.query.Param;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.enums.FingerprintKind;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.model.MediaFingerprint;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PendingPhoto;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PendingVideo;
 import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PhotoHashRawResponse;
+import br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.VideoFrameRawResponse;
 
 /**
  * Results side of the visual fingerprints. Reads never mix algorithms: every
@@ -106,5 +108,67 @@ public interface MediaFingerprintRepository extends JpaRepository<MediaFingerpri
 			                    AND fe.attempts >= :maxAttempts)
 			""")
 	long countPendingPhotos(@Param("kind") FingerprintKind kind, @Param("algorithm") String algorithm,
+			@Param("maxAttempts") int maxAttempts);
+
+	/**
+	 * All sampled frames of every {@code ACTIVE} fingerprinted video (of the given
+	 * kind/algorithm), ordered so a video's frames are contiguous and in
+	 * {@code sampleIndex} order - the grouping reassembles them per video. The
+	 * duration and display dimensions feed the cheap candidate bucketing.
+	 * {@code pageable} is a safety cap on how many frame rows are loaded, not real
+	 * pagination.
+	 */
+	@Query("""
+			SELECT new br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.VideoFrameRawResponse(
+				m.publicId, f.sampleIndex, f.positionMs, f.hashBytes, f.sampleBytes,
+				m.fileName, m.extension, m.sizeBytes, l.currentPath, l.currentFolder, m.modifiedAt,
+				v.durationSeconds, md.displayWidth, md.displayHeight)
+			FROM MediaFingerprint f
+			JOIN CatalogFile m ON m.id = f.catalogFileId
+			JOIN m.video v
+			LEFT JOIN m.metadata md
+			LEFT JOIN m.location l
+			WHERE f.kind = :kind AND f.algorithm = :algorithm
+			  AND m.lifecycleStatus = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.ACTIVE
+			ORDER BY m.id ASC, f.sampleIndex ASC
+			""")
+	List<VideoFrameRawResponse> findFingerprintedVideoFrames(@Param("kind") FingerprintKind kind,
+			@Param("algorithm") String algorithm, Pageable pageable);
+
+	/**
+	 * The derived pending queue for videos: videos with no fingerprint for this
+	 * kind/algorithm and no exhausted failure. Mirrors {@link #findPendingPhotos}
+	 * but joins {@code video} for the duration used to place frame samples.
+	 */
+	@Query("""
+			SELECT new br.com.jorgemelo.nimbusfilemanager.duplicate.domain.repository.projection.PendingVideo(
+				m.id, l.currentPath, v.durationSeconds)
+			FROM CatalogFile m
+			JOIN m.location l
+			JOIN m.video v
+			WHERE m.fileType = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.FileType.VIDEO
+			  AND m.lifecycleStatus = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.ACTIVE
+			  AND NOT EXISTS (SELECT 1 FROM MediaFingerprint f
+			                  WHERE f.catalogFileId = m.id AND f.kind = :kind AND f.algorithm = :algorithm)
+			  AND NOT EXISTS (SELECT 1 FROM FingerprintFailure fe
+			                  WHERE fe.catalogFileId = m.id AND fe.kind = :kind AND fe.algorithm = :algorithm
+			                    AND fe.attempts >= :maxAttempts)
+			ORDER BY m.id ASC
+			""")
+	List<PendingVideo> findPendingVideos(@Param("kind") FingerprintKind kind, @Param("algorithm") String algorithm,
+			@Param("maxAttempts") int maxAttempts, Pageable pageable);
+
+	@Query("""
+			SELECT count(m)
+			FROM CatalogFile m
+			WHERE m.fileType = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.FileType.VIDEO
+			  AND m.lifecycleStatus = br.com.jorgemelo.nimbusfilemanager.shared.domain.enums.LifecycleStatus.ACTIVE
+			  AND NOT EXISTS (SELECT 1 FROM MediaFingerprint f
+			                  WHERE f.catalogFileId = m.id AND f.kind = :kind AND f.algorithm = :algorithm)
+			  AND NOT EXISTS (SELECT 1 FROM FingerprintFailure fe
+			                  WHERE fe.catalogFileId = m.id AND fe.kind = :kind AND fe.algorithm = :algorithm
+			                    AND fe.attempts >= :maxAttempts)
+			""")
+	long countPendingVideos(@Param("kind") FingerprintKind kind, @Param("algorithm") String algorithm,
 			@Param("maxAttempts") int maxAttempts);
 }
